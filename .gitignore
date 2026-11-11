@@ -32,6 +32,10 @@ logs/
 *.log
 
 # Outputs (cloud publish package - keep structure but not sensitive data)
+outputs/breadth_temp/
+outputs/publish/run_*/
+outputs/publish/latest_backup_*/
+outputs/publish/latest
 outputs/publish/latest/*.parquet
 outputs/publish/latest/manifest.json
 outputs/publish/latest/market_summary.json
