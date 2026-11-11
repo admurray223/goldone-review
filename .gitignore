@@ -1,0 +1,54 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment
+.env*
+!.env.goldone.example
+
+# Data
+data/*.duckdb
+data/*.wal
+data/*.db
+data/*.sqlite
+
+# Raw API responses
+raw_responses/
+*.jsonl
+*.json.gz
+
+# Cache
+cache/
+*.cache
+
+# Logs
+logs/
+*.log
+
+# Outputs (cloud publish package - keep structure but not sensitive data)
+outputs/publish/latest/*.parquet
+outputs/publish/latest/manifest.json
+outputs/publish/latest/market_summary.json
+outputs/publish/latest/index_status.json
+outputs/publish/latest/breadth_summary.json
+outputs/publish/latest/quality_status.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test artifacts
+test_output/
+.coverage.*
