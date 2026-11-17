@@ -6,6 +6,11 @@
 (function() {
     'use strict';
 
+    // Feedback storage contract: the key must never change between versions,
+    // otherwise opinions saved by a previous release would silently disappear.
+    const FEEDBACK_SCHEMA_VERSION = '2.0';
+    const FEEDBACK_STORAGE_KEY = 'goldone_feedback';
+
     // ============================================
     // State Management
     // ============================================
@@ -135,7 +140,15 @@
             'concentration.json',
             'data_quality.json',
             'version_history.json',
-            'd2b_status.json'
+            'baseline_comparison.json',
+            'd2c_status.json',
+            'cost_attribution.json',
+            'cost_sensitivity.json',
+            'trading_frequency.json',
+            'holding_period.json',
+            'risk_events.json',
+            'financial_availability.json',
+            'segment_labels.json'
         ];
 
         const basePath = 'data/';
@@ -154,7 +167,7 @@
 
         // Update UI with manifest info
         if (state.data.manifest) {
-            els.versionBadge.textContent = state.data.manifest.formal_baseline.replace('.duckdb', '');
+            els.versionBadge.textContent = state.data.manifest.formal_baseline.replace(/\.db$/i, '');
             els.dataAsOf.textContent = `数据截止: ${state.data.manifest.data_as_of} | 生成时间: ${new Date(state.data.manifest.generated_at).toLocaleString('zh-CN')}`;
         }
     }
@@ -164,7 +177,7 @@
     // ============================================
     function loadFeedback() {
         try {
-            const stored = localStorage.getItem('goldone_feedback');
+            const stored = localStorage.getItem(FEEDBACK_STORAGE_KEY);
             state.feedback = stored ? JSON.parse(stored) : [];
         } catch (e) {
             state.feedback = [];
@@ -173,7 +186,7 @@
 
     function saveFeedback() {
         try {
-            localStorage.setItem('goldone_feedback', JSON.stringify(state.feedback));
+            localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(state.feedback));
         } catch (e) {
             showToast('保存失败：存储空间不足', 'error');
         }
@@ -206,11 +219,23 @@
         saveFeedback();
     }
 
+    function migrateFeedbackRecord(rec) {
+        // V1 records carried no schema marker; the fields are already identical,
+        // so the migration is additive and lossless.
+        return {
+            schema_version: rec.schema_version || '1.0',
+            ...rec,
+            schema_version_migrated_to: FEEDBACK_SCHEMA_VERSION
+        };
+    }
+
     function exportFeedback() {
         const data = {
             exportedAt: new Date().toISOString(),
-            version: '1.0',
-            feedback: state.feedback
+            version: '2.0',
+            schema_version: FEEDBACK_SCHEMA_VERSION,
+            storage_key: FEEDBACK_STORAGE_KEY,
+            feedback: state.feedback.map(migrateFeedbackRecord)
         };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -227,10 +252,12 @@
         reader.onload = e => {
             try {
                 const data = JSON.parse(e.target.result);
-                if (data.feedback && Array.isArray(data.feedback)) {
-                    // Merge, avoiding duplicates by id
+                // accepts both the V1 export (no schema_version) and V2
+                if (data && data.feedback && Array.isArray(data.feedback)) {
                     const existingIds = new Set(state.feedback.map(f => f.id));
-                    const newItems = data.feedback.filter(f => f.id && !existingIds.has(f.id));
+                    const newItems = data.feedback
+                        .filter(f => f && f.id && !existingIds.has(f.id))
+                        .map(migrateFeedbackRecord);
                     state.feedback = [...newItems, ...state.feedback];
                     saveFeedback();
                     renderPage('feedback');
@@ -305,6 +332,8 @@
             trades: renderTrades,
             funnel: renderFunnel,
             concentration: renderConcentration,
+            cost: renderCostAttribution,
+            behaviour: renderBehaviour,
             quality: renderQuality,
             history: renderHistory,
             feedback: renderFeedbackPage
@@ -324,51 +353,61 @@
         const c = exp.C || {};
         const r = exp.R || {};
         const dq = state.data.data_quality || {};
-        const d2b = state.data.d2b_status || {};
+        const man = state.data.manifest || {};
+        const st = state.data.d2c_status || {};
+        const risk = state.data.risk_events || {};
+        const riskFull = risk.risk_three_layer_full_period || {};
+        const riskNew = risk.new_window || {};
+        const formal = (man.formal_baseline || '').startsWith('recent_d2c');
+        const fmtPct = v => (typeof v === 'number' ? utils.formatPercent(v) : '-');
+        const num = v => (typeof v === 'number' ? utils.formatNumber(v) : '-');
 
         container.innerHTML = `
             <div class="section-header">
                 <div>
                     <h1 class="section-title">实验总览</h1>
-                    <p class="section-subtitle">GoldOne D2A-R1 正式基线 · BJ-free 口径</p>
+                    <p class="section-subtitle">${formal ? 'D2C 正式基线 · BJ-free 口径 · 完整连续回测' : 'D2B 正式基线 · BJ-free 口径'}</p>
                 </div>
             </div>
 
             <div class="metric-grid">
                 <div class="metric-card">
                     <div class="metric-label">当前正式版本</div>
-                    <div class="metric-value">D2A-R1</div>
+                    <div class="metric-value">${formal ? 'D2C' : 'D2B'}</div>
+                    <div class="metric-delta neutral">上一正式版本: D2B</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">数据截止日期</div>
-                    <div class="metric-value">${utils.formatDate(dq.data_date_range?.split(' to ')[1] || '2025-10-31')}</div>
+                    <div class="metric-value">${man.data_as_of || (dq.data_date_range || '').split(' to ')[1] || '-'}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">交易日数量</div>
+                    <div class="metric-value">${dq.trade_days || c.trade_days || 370}</div>
+                    <div class="metric-delta neutral">旧370日 + 新增${(dq.new_window || {}).trade_days || 90}日</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">股票池数量</div>
                     <div class="metric-value">${dq.formal_universe || 1932}</div>
-                    <div class="metric-delta neutral">排除 BJ: ${dq.excluded_bj || 3}</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label">交易日数量</div>
-                    <div class="metric-value">${dq.trade_days || 280}</div>
+                    <div class="metric-delta neutral">排除 BJ: ${(state.data.universe_info || {}).excluded_bj || 3}</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">Group C 总收益</div>
-                    <div class="metric-value">${utils.formatPercent(c.total_return)}</div>
-                    <div class="metric-delta positive">期末权益: ${utils.formatNumber(c.final_equity)}</div>
+                    <div class="metric-value">${fmtPct(c.total_return)}</div>
+                    <div class="metric-delta positive">期末权益: ${num(c.final_equity)}</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">Group R 总收益</div>
-                    <div class="metric-value">${utils.formatPercent(r.total_return)}</div>
-                    <div class="metric-delta positive">期末权益: ${utils.formatNumber(r.final_equity)}</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label">沪深300同期</div>
-                    <div class="metric-value" id="hs300Return">计算中...</div>
+                    <div class="metric-value">${fmtPct(r.total_return)}</div>
+                    <div class="metric-delta positive">期末权益: ${num(r.final_equity)}</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">最大回撤 (C/R)</div>
-                    <div class="metric-value" id="maxDrawdown">计算中...</div>
+                    <div class="metric-value">${fmtPct(c.max_drawdown)} / ${fmtPct(r.max_drawdown)}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">risk_three_layer 触发</div>
+                    <div class="metric-value">${num((riskFull.C || 0))} / ${num((riskFull.R || 0))}</div>
+                    <div class="metric-delta neutral">新增${(dq.new_window || {}).trade_days || 90}日: ${num((riskNew.C || {}).risk_three_layer || 0)} / ${num((riskNew.R || {}).risk_three_layer || 0)}</div>
                 </div>
             </div>
 
@@ -379,19 +418,24 @@
                 <div class="card-body">
                     <div class="status-grid">
                         <div class="status-card verified">
-                            <div class="status-card-title">数据验证</div>
-                            <div class="status-card-value">已验证</div>
-                            <div class="status-card-sub">280日连续账本恒等式通过</div>
+                            <div class="status-card-title">旧370日复现</div>
+                            <div class="status-card-value">${st.old_370d_reproduction_gate && st.old_370d_reproduction_gate.C && st.old_370d_reproduction_gate.R ? '逐值一致' : '见详情'}</div>
+                            <div class="status-card-sub">信号/候选顺序/交易流/每日净值/期末持仓一致</div>
                         </div>
                         <div class="status-card verified">
-                            <div class="status-card-title">策略行为</div>
+                            <div class="status-card-title">连续回测</div>
                             <div class="status-card-value">已验证</div>
-                            <div class="status-card-sub">Group C 完全复现；Group R 差异已归因</div>
+                            <div class="status-card-sub">无清仓、无资金重置、T+1、100股整手</div>
                         </div>
                         <div class="status-card verified">
-                            <div class="status-card-title">资产核算</div>
+                            <div class="status-card-title">资产恒等</div>
                             <div class="status-card-value">已验证</div>
-                            <div class="status-card-sub">分段收益连续复合，无资金重置</div>
+                            <div class="status-card-sub">现金+市值=权益，全区间闭合</div>
+                        </div>
+                        <div class="status-card verified">
+                            <div class="status-card-title">D2C 网络预算</div>
+                            <div class="status-card-value">${st.api_calls_executed != null ? st.api_calls_executed + ' / ' + (st.api_budget_limit || 195) : '-'}</div>
+                            <div class="status-card-sub">index_daily 预算预留: ${st.index_daily_budget_reserved ? '是' : '否'}</div>
                         </div>
                         <div class="status-card blocked">
                             <div class="status-card-title">Raw Execution</div>
@@ -406,12 +450,7 @@
                         <div class="status-card blocked">
                             <div class="status-card-title">财务覆盖</div>
                             <div class="status-card-value">不足</div>
-                            <div class="status-card-sub">评分样本覆盖率低</div>
-                        </div>
-                        <div class="status-card waiting">
-                            <div class="status-card-title">D2B 状态</div>
-                            <div class="status-card-value">等待网络执行</div>
-                            <div class="status-card-sub">${d2b_status_text(d2b)}</div>
+                            <div class="status-card-sub">评分为 6 只样本，按正式规则降级</div>
                         </div>
                     </div>
                 </div>
@@ -422,11 +461,11 @@
                 所有收益基于 <code>adjusted_virtual</code> 价格空间，数量采用 100 股整手近似，
                 不等于真实证券账户成交记录。
             </div>
+            <div class="alert alert-info" style="margin-top: 12px;">
+                <strong>成本路径提示：</strong> 成本提高后个别情景期末权益更高，是“可买数量变化 → 持仓路径变化”的路径结果，
+                不代表高成本更优；详见“成本归因”页的分类与守恒校验。
+            </div>
         `;
-
-        // Calculate HS300 return
-        calculateHS300Return();
-        calculateMaxDrawdown();
     }
 
     function d2b_status_text(d2b) {
@@ -1484,11 +1523,11 @@
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">Raw Universe</div>
-                    <div class="metric-value">${dq.raw_universe || 1935}</div>
+                    <div class="metric-value">${uni.raw_universe || 1935}</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">Excluded BJ</div>
-                    <div class="metric-value">${dq.excluded_bj || 3}</div>
+                    <div class="metric-value">${uni.excluded_bj || 3}</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">Daily 覆盖率</div>
@@ -1508,7 +1547,9 @@
                 <div class="card-header"><span class="card-title">复权与板块口径</span></div>
                 <div class="card-body">
                     <ul style="line-height: 2;">
-                        <li><strong>复权口径：</strong> ${dq.adjusted_method || 'QFQ (forward-adjusted) with frozen reference date 2025-06-19'}</li>
+                        <li><strong>复权口径：</strong> ${dq.adj_factor_source || 'qfq_frozen_reference_20250619'}</li>
+                        <li><strong>旧窗口逐值保留：</strong> ${dq.old_window_preserved_value_for_value ? '是 (adjusted/sector/index)' : '见证据'}</li>
+                        <li><strong>D2C 网络调用：</strong> ${dq.api_calls != null ? dq.api_calls + ' / ' + (dq.api_budget_limit || 195) : '-'}</li>
                         <li><strong>板块代理口径：</strong> ${dq.sector_proxy || 'price_breadth_proxy (价格/宽度代理)'}</li>
                         <li><strong>板块基准：</strong> ${dq.sector_basis || 'formal_bj_free'}</li>
                         <li><strong>数据源：</strong> ${dq.data_source || 'Tushare (authorized provider)'}</li>
@@ -1532,8 +1573,8 @@
                         <table>
                             <thead><tr><th>代码</th><th>名称</th><th>交易所</th></tr></thead>
                             <tbody>
-                                ${(uni.bj_stocks || []).map(s => `
-                                    <tr><td class="mono">${utils.escapeHtml(s.symbol)}</td><td>${utils.escapeHtml(s.name)}</td><td>BJ</td></tr>
+                                ${(uni.bj_codes || []).map(s => `
+                                    <tr><td class="mono">${utils.escapeHtml(s)}</td><td>-</td><td>BJ</td></tr>
                                 `).join('')}
                             </tbody>
                         </table>
@@ -1552,7 +1593,7 @@
         container.innerHTML = `
             <div class="section-header">
                 <h1 class="section-title">版本历史</h1>
-                <p class="section-subtitle">时间线：从 Pilot 到 D2B-P0</p>
+                <p class="section-subtitle">时间线：从 Pilot 到 D2C（历史版本保留）</p>
             </div>
 
             <div class="card">
@@ -1582,6 +1623,153 @@
                 <strong>重点说明：</strong> P9-R1 Group R (1,044,308.62) 为何被 BJ-free 正式基线替代：
                 差异来自板块宽度间接影响 (工程机械/塑料/通信设备 34 个门禁日变化)，不是北交所股票被直接买入。
                 P5 的 sector_daily 在 1935 样本上计算 (含 3 只 BJ)，正式口径剔除 BJ 后板块宽度变化导致 Group R 门禁结果不同。
+            </div>
+        `;
+    }
+
+    // ============================================
+    // Page: Cost path attribution
+    // ============================================
+    function renderCostAttribution(container) {
+        const attr = state.data.cost_attribution || {};
+        const labels = { double_slippage: '双倍滑点', double_commission: '双倍佣金', double_both: '双倍滑点+佣金' };
+        const groups = ['C', 'R'];
+        const fmt = v => (typeof v === 'number' ? utils.formatNumber(v, 2) : '-');
+        const signed = v => (typeof v === 'number' ? (v > 0 ? '+' : '') + utils.formatNumber(v, 2) : '-');
+
+        function block(group, scenario) {
+            const a = (attr[group] || {})[scenario];
+            if (!a) return '<div class="card-body">无数据</div>';
+            const fd = a.first_divergence || {};
+            const ft = fd.first_trade_difference || {};
+            const fp = fd.first_position_difference || {};
+            const replay = a.frozen_signal_replay || {};
+            const cons = a.conservation || {};
+            const rows = (a.top_contributors || []).slice(0, 10).map(r => `
+                <tr>
+                    <td class="mono">${utils.escapeHtml(r.ts_code)}</td>
+                    <td>${signed(r.delta_net)}</td>
+                    <td>${signed(r.delta_realized)}</td>
+                    <td>${signed(r.delta_unrealized)}</td>
+                    <td>${signed(r.delta_fees)}</td>
+                    <td>${r.delta_bought_qty}</td>
+                    <td><span class="badge badge-neutral">${utils.escapeHtml(r.channel || '')}</span></td>
+                </tr>`).join('');
+            return `
+                <div class="card" style="margin-top:16px;">
+                    <div class="card-header"><span class="card-title">Group ${group} · ${labels[scenario] || scenario}</span></div>
+                    <div class="card-body">
+                        <div class="metric-grid">
+                            <div class="metric-card"><div class="metric-label">总效应 total_effect</div><div class="metric-value">${signed(a.total_effect)}</div></div>
+                            <div class="metric-card"><div class="metric-label">直接成本效应</div><div class="metric-value">${signed(a.direct_cost_effect)}</div></div>
+                            <div class="metric-card"><div class="metric-label">分配路径效应</div><div class="metric-value">${signed(a.allocation_path_effect)}</div></div>
+                            <div class="metric-card"><div class="metric-label">持仓路径效应</div><div class="metric-value">${signed(a.holding_path_effect)}</div></div>
+                        </div>
+                        <ul style="line-height:1.9; font-size:0.87rem; margin-top:12px;">
+                            <li><strong>守恒校验：</strong> 分项合计 ${fmt(cons.sum_components)}，残差 ${cons.residual} ${cons.conserved ? '✅' : '❌'}</li>
+                            <li><strong>费用差：</strong> ${signed(a.fee_delta)}；<strong>滑点差：</strong> ${signed(a.slippage_delta)}</li>
+                            <li><strong>可买数量变化：</strong> baseline ${a.buy_quantity_baseline} 股 → 情景 ${a.buy_quantity_scenario} 股（${a.buy_quantity_delta >= 0 ? '+' : ''}${a.buy_quantity_delta}）</li>
+                            <li><strong>首个成交差异：</strong> ${ft.baseline ? `${utils.escapeHtml(String(ft.baseline[1]))} ${utils.escapeHtml(String(ft.baseline[2]))} ${utils.formatDate(String(ft.baseline[0]))}` : '无'}</li>
+                            <li><strong>首个持仓差异：</strong> ${fp.date ? utils.formatDate(fp.date) : '无'}</li>
+                            <li><strong>固定信号成本重放：</strong> 成本渠道影响（费用+可买股数）${signed(replay.signal_constant_cost_effect)}，信号路径影响 ${signed(replay.signal_path_effect)}</li>
+                        </ul>
+                        <div class="table-container" style="margin-top:12px;">
+                            <table>
+                                <thead><tr><th>标的</th><th>净差</th><th>已实现差</th><th>未实现差</th><th>费用差</th><th>买入股数差</th><th>渠道</th></tr></thead>
+                                <tbody>${rows}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        container.innerHTML = `
+            <div class="section-header">
+                <h1 class="section-title">成本路径归因</h1>
+                <p class="section-subtitle">区分 direct_cost_effect / allocation_path_effect / holding_path_effect / total_effect</p>
+            </div>
+            <div class="alert alert-info">
+                成本提高后期末权益更高，只可能来自“成本变化 → 可买数量变化 → 持仓路径变化”的间接路径，
+                不得解释为“高成本更优”。下方每一情景都给出守恒校验与固定信号重放。
+            </div>
+            ${groups.map(g => Object.keys(labels).map(s => block(g, s)).join('')).join('')}
+        `;
+    }
+
+    // ============================================
+    // Page: Trading behaviour (frequency & holding)
+    // ============================================
+    function renderBehaviour(container) {
+        const freq = state.data.trading_frequency || {};
+        const hold = state.data.holding_period || {};
+        const risk = state.data.risk_events || {};
+        const conc = state.data.concentration || {};
+        const fin = state.data.financial_availability || {};
+        const dq = state.data.data_quality || {};
+        const num = v => (typeof v === 'number' ? utils.formatNumber(v, 2) : '-');
+        const f = (group) => freq[group] || {};
+        const h = (group) => hold[group] || {};
+
+        container.innerHTML = `
+            <div class="section-header">
+                <h1 class="section-title">交易频率与持有期</h1>
+                <p class="section-subtitle">策略行为的描述性观察，不修改任何规则</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><span class="card-title">交易频率 (baseline)</span></div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>指标</th><th>Group C</th><th>Group R</th></tr></thead>
+                            <tbody>
+                                <tr><td>交易笔数</td><td>${num(f('C').trades_total)}</td><td>${num(f('R').trades_total)}</td></tr>
+                                <tr><td>日均交易笔数</td><td>${num(f('C').trades_per_trade_day)}</td><td>${num(f('R').trades_per_trade_day)}</td></tr>
+                                <tr><td>年均交易笔数 (252)</td><td>${num(f('C').trades_per_year_252)}</td><td>${num(f('R').trades_per_year_252)}</td></tr>
+                                <tr><td>有交易日占比</td><td>${utils.formatPercent(f('C').days_with_trades_share)}</td><td>${utils.formatPercent(f('R').days_with_trades_share)}</td></tr>
+                                <tr><td>新增区间交易笔数</td><td>${num(f('C').new_window_trades)}</td><td>${num(f('R').new_window_trades)}</td></tr>
+                                <tr><td>新增区间日均</td><td>${num(f('C').new_window_trades_per_day)}</td><td>${num(f('R').new_window_trades_per_day)}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top:16px;">
+                <div class="card-header"><span class="card-title">持有期 (交易日)</span></div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>指标</th><th>Group C</th><th>Group R</th></tr></thead>
+                            <tbody>
+                                <tr><td>已平仓笔数</td><td>${num(h('C').closed_positions)}</td><td>${num(h('R').closed_positions)}</td></tr>
+                                <tr><td>平均持有</td><td>${num(h('C').mean_holding_trading_days)}</td><td>${num(h('R').mean_holding_trading_days)}</td></tr>
+                                <tr><td>中位持有</td><td>${num(h('C').median_holding_trading_days)}</td><td>${num(h('R').median_holding_trading_days)}</td></tr>
+                                <tr><td>P10 / P90</td><td>${num(h('C').p10_holding_trading_days)} / ${num(h('C').p90_holding_trading_days)}</td><td>${num(h('R').p10_holding_trading_days)} / ${num(h('R').p90_holding_trading_days)}</td></tr>
+                                <tr><td>新增区间平均持有</td><td>${num((h('C').new_window || {}).mean_holding_trading_days)}</td><td>${num((h('R').new_window || {}).mean_holding_trading_days)}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top:16px;">
+                <div class="card-header"><span class="card-title">卖出原因 / 集中度 / 候选池</span></div>
+                <div class="card-body">
+                    <ul style="line-height:1.9; font-size:0.87rem;">
+                        <li><strong>risk_three_layer 触发：</strong> 全区间 C=${num((risk.risk_three_layer_full_period||{}).C)} / R=${num((risk.risk_three_layer_full_period||{}).R)}；新增区间 C=${num(((risk.new_window||{}).C||{}).risk_three_layer)} / R=${num(((risk.new_window||{}).R||{}).risk_three_layer)}</li>
+                        <li><strong>允许的卖出原因：</strong> ${(risk.allowed_reasons || []).join(' / ')}</li>
+                        <li><strong>最大单股权重：</strong> C ${utils.formatPercent(((conc.baseline||{}).C||{}).max_single_position_weight)} / R ${utils.formatPercent(((conc.baseline||{}).R||{}).max_single_position_weight)}</li>
+                        <li><strong>Top5 权重：</strong> C ${utils.formatPercent(((conc.baseline||{}).C||{}).max_top5_weight)} / R ${utils.formatPercent(((conc.baseline||{}).R||{}).max_top5_weight)}</li>
+                        <li><strong>Top10 权重：</strong> C ${utils.formatPercent(((conc.baseline||{}).C||{}).max_top10_weight)} / R ${utils.formatPercent(((conc.baseline||{}).R||{}).max_top10_weight)}</li>
+                        <li><strong>前三行业权重：</strong> C ${utils.formatPercent(((conc.baseline||{}).C||{}).max_top3_industry_weight)} / R ${utils.formatPercent(((conc.baseline||{}).R||{}).max_top3_industry_weight)}</li>
+                        <li><strong>最大同时持仓：</strong> C ${num((((conc.baseline||{}).C||{}).max_simultaneous_positions))} / R ${num((((conc.baseline||{}).R||{}).max_simultaneous_positions))}</li>
+                        <li><strong>平均 READY 池：</strong> C ${num((((fin.per_group_signal_candidates||{}).C)||{}).mean_ready_pool_size)} / R ${num((((fin.per_group_signal_candidates||{}).R)||{}).mean_ready_pool_size)}</li>
+                        <li><strong>平均未获资金候选：</strong> C ${num((((fin.per_group_signal_candidates||{}).C)||{}).mean_unfunded_candidates)} / R ${num((((fin.per_group_signal_candidates||{}).R)||{}).mean_unfunded_candidates)}</li>
+                        <li><strong>财务不可用占比（候选评估）：</strong> C ${utils.formatPercent((((fin.per_group_signal_candidates||{}).C)||{}).financial_unavailable_share)} / R ${utils.formatPercent((((fin.per_group_signal_candidates||{}).R)||{}).financial_unavailable_share)}</li>
+                        <li><strong>板块代理状态分布（新增区间）：</strong> ${JSON.stringify(dq.sector_gate_distribution_new_window || {})}</li>
+                    </ul>
+                </div>
             </div>
         `;
     }
