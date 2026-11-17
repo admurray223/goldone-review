@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="GoldOne实验审阅台 - 策略实验展示与意见收集">
+    <meta name="description" content="GoldOne实验审阅台 - 四组实验展示与意见收集（schema 3.0.0）">
     <title>GoldOne 实验审阅台</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23c9a227'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="styles.css">
@@ -16,13 +16,17 @@
                 <h1 class="site-title">GoldOne 实验审阅台</h1>
                 <span class="version-badge" id="versionBadge">加载中...</span>
             </div>
+            <div class="experiment-picker" id="experimentPicker">
+                <label for="experimentSelect">当前实验</label>
+                <select id="experimentSelect" aria-label="选择实验"></select>
+            </div>
             <nav class="main-nav" id="mainNav">
                 <a href="#overview" class="nav-link active" data-page="overview">总览</a>
-                <a href="#nav" class="nav-link" data-page="nav">净值</a>
-                <a href="#comparison" class="nav-link" data-page="comparison">实验对比</a>
+                <a href="#nav" class="nav-link" data-page="nav">净值与回撤</a>
+                <a href="#comparison" class="nav-link" data-page="comparison">实验比较</a>
                 <a href="#segments" class="nav-link" data-page="segments">分段表现</a>
                 <a href="#trades" class="nav-link" data-page="trades">交易</a>
-                <a href="#funnel" class="nav-link" data-page="funnel">候选漏斗</a>
+                <a href="#riskfix" class="nav-link" data-page="riskfix">风险修复实验</a>
                 <a href="#concentration" class="nav-link" data-page="concentration">持仓集中度</a>
                 <a href="#cost" class="nav-link" data-page="cost">成本归因</a>
                 <a href="#behaviour" class="nav-link" data-page="behaviour">频率与持有期</a>
@@ -69,7 +73,7 @@
         <!-- Footer -->
         <footer class="footer">
             <div class="footer-left">
-                <span>GoldOne 实验审阅台 v2.0.0</span>
+                <span>GoldOne 实验审阅台 v3.1.0 · schema 3.0.0</span>
                 <span class="data-as-of" id="dataAsOf"></span>
             </div>
             <div class="footer-right">
@@ -128,11 +132,23 @@
                     <div class="form-group">
                         <label for="feedbackVersion">对应实验版本 <span class="required">*</span></label>
                         <select id="feedbackVersion" name="version" required>
-                            <option value="D2C">D2C (当前正式基线)</option>
-                            <option value="D2B">D2B (上一正式基线)</option>
+                            <option value="RiskFixV1">RiskFixV1 (当前正式基线)</option>
+                            <option value="D2C">D2C (上一正式基线)</option>
+                            <option value="D2B">D2B (历史正式基线)</option>
                             <option value="D2A-R1">D2A-R1 (历史正式基线)</option>
                             <option value="P9-R1">P9-R1 (已替代)</option>
                             <option value="other">其他</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="feedbackExperiment">对应实验组</label>
+                        <select id="feedbackExperiment" name="experiment">
+                            <option value="">不指定</option>
+                            <option value="original_C_baseline">Original C</option>
+                            <option value="original_R_baseline">Original R</option>
+                            <option value="fixed_C_baseline">Fixed C</option>
+                            <option value="fixed_R_baseline">Fixed R</option>
                         </select>
                     </div>
 
