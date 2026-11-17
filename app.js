@@ -737,8 +737,10 @@
                 },
                 scales: {
                     x: {
-                        type: 'time',
-                        time: { unit: 'month', displayFormats: { month: 'YYYY-MM' }},
+                        // the bundle ships Chart.js core only, so no date adapter is
+                        // available; the labels are ISO dates and render as a category axis
+                        type: 'category',
+                        ticks: { maxTicksLimit: 8, autoSkip: true, maxRotation: 0 },
                         title: { display: true, text: '日期' }
                     },
                     y: {
@@ -801,8 +803,8 @@
                 },
                 scales: {
                     x: {
-                        type: 'time',
-                        time: { unit: 'month', displayFormats: { month: 'YYYY-MM' }}
+                        type: 'category',
+                        ticks: { maxTicksLimit: 8, autoSkip: true, maxRotation: 0 }
                     },
                     y: {
                         title: { display: true, text: '回撤 (%)' },
