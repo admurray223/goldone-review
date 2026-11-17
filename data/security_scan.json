@@ -1,8 +1,1 @@
-{
-  "scanned_at": "2026-11-17T09:46:12.843446+00:00",
-  "scope": "dist (static bundle + app resources)",
-  "files_scanned": 27,
-  "rules_evaluated": 16,
-  "findings": [],
-  "passed": true
-}
+{"scanned_at":"2026-11-17T13:01:34.384576+00:00","scope":"dist/data (static bundle)","files_scanned":23,"rules_evaluated":16,"findings":[],"passed":true}
