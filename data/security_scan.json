@@ -1,0 +1,8 @@
+{
+  "scanned_at": "2026-11-17T16:21:14+00:00",
+  "scope": "entire web/goldone-review/dist (UI shell + all data files)",
+  "files_scanned": 28,
+  "findings": [],
+  "passed": true,
+  "note": "Full evidence: outputs/web/goldone_v3_ui_fix/security_scan.json"
+}

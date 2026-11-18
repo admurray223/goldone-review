@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GoldOne实验审阅台 - 四组实验展示与意见收集（schema 3.0.0）">
+    <title>GoldOne 实验审阅台</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23c9a227'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1 class="site-title">GoldOne 实验审阅台</h1>
+                <span class="version-badge" id="versionBadge">加载中...</span>
+            </div>
+            <div class="experiment-picker" id="experimentPicker">
+                <label for="experimentSelect">当前实验</label>
+                <select id="experimentSelect" aria-label="选择实验"></select>
+            </div>
+            <nav class="main-nav" id="mainNav">
+                <a href="#overview" class="nav-link active" data-page="overview">总览</a>
+                <a href="#nav" class="nav-link" data-page="nav">净值与回撤</a>
+                <a href="#comparison" class="nav-link" data-page="comparison">实验比较</a>
+                <a href="#segments" class="nav-link" data-page="segments">分段表现</a>
+                <a href="#trades" class="nav-link" data-page="trades">交易</a>
+                <a href="#riskfix" class="nav-link" data-page="riskfix">风险修复实验</a>
+                <a href="#concentration" class="nav-link" data-page="concentration">持仓集中度</a>
+                <a href="#cost" class="nav-link" data-page="cost">成本归因</a>
+                <a href="#behaviour" class="nav-link" data-page="behaviour">频率与持有期</a>
+                <a href="#quality" class="nav-link" data-page="quality">数据质量</a>
+                <a href="#history" class="nav-link" data-page="history">版本历史</a>
+                <a href="#feedback" class="nav-link" data-page="feedback">修正意见</a>
+            </nav>
+            <div class="header-right">
+                <button class="theme-toggle" id="themeToggle" aria-label="切换主题">
+                    <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+                <button class="btn btn-secondary" id="exportFeedbackBtn" title="导出意见">导出意见</button>
+            </div>
+        </header>
+
+        <!-- Disclaimer Banner -->
+        <div class="disclaimer-banner" id="disclaimerBanner">
+            <svg class="warning-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span>当前结果用于策略实验和行为验证，不构成投资建议，不授权模拟盘或实盘。</span>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content" id="mainContent">
+            <!-- Pages will be rendered here -->
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-left">
+                <span>GoldOne 实验审阅台 v3.1.0 · schema 3.0.0</span>
+                <span class="data-as-of" id="dataAsOf"></span>
+            </div>
+            <div class="footer-right">
+                <a href="#" id="viewManifestBtn">查看 Manifest</a>
+                <a href="#" id="viewSecurityBtn">安全扫描报告</a>
+            </div>
+        </footer>
+
+        <!-- Feedback Modal -->
+        <div class="modal" id="feedbackModal" role="dialog" aria-modal="true" aria-labelledby="feedbackModalTitle">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="feedbackModalTitle">提出修正意见</h2>
+                    <button class="modal-close" id="feedbackModalClose" aria-label="关闭">&times;</button>
+                </div>
+                <form class="feedback-form" id="feedbackForm">
+                    <input type="hidden" name="id" id="feedbackId">
+                    <input type="hidden" name="page" id="feedbackPage">
+                    <input type="hidden" name="date" id="feedbackDate">
+                    <input type="hidden" name="symbol" id="feedbackSymbol">
+
+                    <div class="form-group">
+                        <label for="feedbackTitle">标题 <span class="required">*</span></label>
+                        <input type="text" id="feedbackTitle" name="title" required maxlength="100">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="feedbackType">类型 <span class="required">*</span></label>
+                            <select id="feedbackType" name="type" required>
+                                <option value="">请选择</option>
+                                <option value="buy_logic">买入逻辑</option>
+                                <option value="sell_logic">卖出逻辑</option>
+                                <option value="observation">观察期</option>
+                                <option value="sector_judgment">板块判断</option>
+                                <option value="market_judgment">大盘判断</option>
+                                <option value="financial_judgment">财务判断</option>
+                                <option value="candidate_ranking">候选排序</option>
+                                <option value="capital_allocation">资金分配</option>
+                                <option value="display">页面展示</option>
+                                <option value="data_issue">数据问题</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="feedbackPriority">优先级 <span class="required">*</span></label>
+                            <select id="feedbackPriority" name="priority" required>
+                                <option value="low">低</option>
+                                <option value="medium" selected>中</option>
+                                <option value="high">高</option>
+                                <option value="critical">紧急</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="feedbackVersion">对应实验版本 <span class="required">*</span></label>
+                        <select id="feedbackVersion" name="version" required>
+                            <option value="RiskFixV1">RiskFixV1 (当前正式基线)</option>
+                            <option value="D2C">D2C (上一正式基线)</option>
+                            <option value="D2B">D2B (历史正式基线)</option>
+                            <option value="D2A-R1">D2A-R1 (历史正式基线)</option>
+                            <option value="P9-R1">P9-R1 (已替代)</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="feedbackExperiment">对应实验组</label>
+                        <select id="feedbackExperiment" name="experiment">
+                            <option value="">不指定</option>
+                            <option value="original_C_baseline">Original C</option>
+                            <option value="original_R_baseline">Original R</option>
+                            <option value="fixed_C_baseline">Fixed C</option>
+                            <option value="fixed_R_baseline">Fixed R</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="feedbackObservation">当前观察 <span class="required">*</span></label>
+                        <textarea id="feedbackObservation" name="observation" required rows="3" maxlength="500"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="feedbackSuggestion">希望修改的策略表达 <span class="required">*</span></label>
+                        <textarea id="feedbackSuggestion" name="suggestion" required rows="3" maxlength="500"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="feedbackReason">修改原因 <span class="required">*</span></label>
+                        <textarea id="feedbackReason" name="reason" required rows="3" maxlength="500"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="needs_rebacktest" id="feedbackNeedsRebacktest">
+                            <span>需要重新回测</span>
+                        </label>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="feedbackCancel">取消</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <div class="modal" id="confirmModal" role="dialog" aria-modal="true">
+            <div class="modal-content modal-small">
+                <p id="confirmMessage"></p>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="confirmCancel">取消</button>
+                    <button type="button" class="btn btn-danger" id="confirmOk">确认</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Container -->
+        <div class="toast-container" id="toastContainer"></div>
+    </div>
+
+    <!-- Load Chart.js locally -->
+    <script src="chart.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
