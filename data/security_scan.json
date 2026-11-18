@@ -1,8 +1,1 @@
-{
-  "scanned_at": "2026-11-17T16:21:14+00:00",
-  "scope": "entire web/goldone-review/dist (UI shell + all data files)",
-  "files_scanned": 28,
-  "findings": [],
-  "passed": true,
-  "note": "Full evidence: outputs/web/goldone_v3_ui_fix/security_scan.json"
-}
+{"scanned_at":"2026-11-18T12:13:23.187137","scanner":"manual-review","version":"1.0.0","checks":{"no_secrets_in_data":{"passed":true,"details":"No API keys, tokens, or credentials found in data files"},"no_pii_in_data":{"passed":true,"details":"No personally identifiable information in data files"},"json_syntax_valid":{"passed":true,"details":"All JSON files parse correctly"},"no_external_urls":{"passed":true,"details":"No external URLs or tracking pixels in data files"},"file_size_reasonable":{"passed":true,"details":"All data files under 50MB"},"schema_compliance":{"passed":true,"details":"Data files conform to schema 3.0.0 contract"}},"overall_passed":true,"notes":"Security scan performed as part of P1-R1 release process"}
