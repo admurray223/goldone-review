@@ -63,7 +63,10 @@
         'risk_events.json',
         'financial_availability.json',
         'segment_labels.json',
-        'security_scan.json'
+        'security_scan.json',
+        'sell_pnl.json',
+        'sell_pnl_summaries.json',
+        'reconciliation.json'
     ];
 
     const state = {
@@ -1196,18 +1199,50 @@
 
     let tradesRows = [];
 
+    function buildPnLLookup() {
+        const sellPnl = state.data.sell_pnl || {};
+        const lookup = {};
+        Object.keys(sellPnl).forEach(function (key) {
+            const arr = sellPnl[key];
+            if (!Array.isArray(arr)) return;
+            arr.forEach(function (p) {
+                const k = p.group + '|' + p.variant + '|' + p.symbol + '|' + (p.sell_date || p.fill_date) + '|sell';
+                lookup[k] = {
+                    net_pnl: p.net_pnl,
+                    net_return_rate: p.net_return_rate,
+                    holding_days: p.holding_days,
+                    cumulative_realized_pnl: p.cumulative_realized_pnl,
+                    status: p.status
+                };
+            });
+        });
+        return lookup;
+    }
+
     function flattenTrades() {
         const c = contract();
         const raw = state.data.trades || {};
+        const pnlLookup = buildPnLLookup();
         const out = [];
         c.experiments.forEach(function (e) {
             (raw[e.group] || []).forEach(function (t) {
                 if ((t.variant || 'original') !== e.implementation) return;
+                const isSell = t.side === 'sell';
+                const fillDate = t.fill_date || t.trade_date || '';
+                let pnlData = null;
+                if (isSell) {
+                    const key = e.group + '|' + e.implementation + '|' + t.symbol + '|' + fillDate + '|sell';
+                    pnlData = pnlLookup[key] || null;
+                }
                 out.push(Object.assign({}, t, {
                     experiment_id: e.id,
                     experiment_label: e.label,
                     implementation: e.implementation,
-                    group: e.group
+                    group: e.group,
+                    net_pnl: pnlData ? pnlData.net_pnl : null,
+                    net_return_rate: pnlData ? pnlData.net_return_rate : null,
+                    holding_days: pnlData ? pnlData.holding_days : null,
+                    cumulative_realized_pnl: pnlData ? pnlData.cumulative_realized_pnl : null
                 }));
             });
         });
@@ -1251,6 +1286,8 @@
             '<option value="">全部</option><option value="buy">买入</option><option value="sell">卖出</option></select></div>' +
             '<div class="filter-group"><label>卖出原因</label><select id="filterReason">' +
             '<option value="">全部</option><option value="target_profit">Target Profit</option><option value="risk_three_layer">Risk Three Layer</option></select></div>' +
+            '<div class="filter-group"><label>盈亏筛选</label><select id="filterPnL">' +
+            '<option value="">全部</option><option value="profit">盈利</option><option value="loss">亏损</option></select></div>' +
             '<div class="filter-group"><label>起始日期</label><input type="date" id="filterDateFrom"></div>' +
             '<div class="filter-group"><label>结束日期</label><input type="date" id="filterDateTo"></div>' +
             '<div class="filter-group"><label>股票代码</label><input type="text" id="filterSymbol" placeholder="如 300987.SZ"></div>' +
@@ -1260,6 +1297,8 @@
             '<th data-sort="side">方向</th><th data-sort="signal_date">信号日期</th><th data-sort="fill_date">成交日期</th>' +
             '<th data-sort="price">成交价格</th><th data-sort="quantity">数量</th><th data-sort="amount">成交金额</th>' +
             '<th data-sort="commission">佣金</th><th data-sort="tax">印花税</th><th data-sort="reason">原因</th>' +
+            '<th data-sort="net_pnl">本次净盈亏(元)</th><th data-sort="net_return_rate">净收益率</th>' +
+            '<th data-sort="holding_days">持有交易日</th><th data-sort="cumulative_realized_pnl">累计已实现净盈亏</th>' +
             '</tr></thead><tbody id="tradesTbody"></tbody></table></div>' +
             '<div class="pagination"><div class="pagination-info" id="tradesInfo">共 0 条</div>' +
             '<div class="pagination-controls"><button class="pagination-btn" id="tradesPrev" disabled>上一页</button>' +
@@ -1276,6 +1315,7 @@
             filterExperiment: 'experiment',
             filterSide: 'side',
             filterReason: 'reason',
+            filterPnL: 'pnl',
             filterDateFrom: 'dateFrom',
             filterDateTo: 'dateTo',
             filterSymbol: 'symbol'
@@ -1289,7 +1329,7 @@
             el.addEventListener('change', handler);
         });
         document.getElementById('clearFiltersBtn').addEventListener('click', function () {
-            state.filters.trades = { experiment: '', side: '', reason: '', dateFrom: '', dateTo: '', symbol: '' };
+            state.filters.trades = { experiment: '', side: '', reason: '', pnl: '', dateFrom: '', dateTo: '', symbol: '' };
             Object.keys(map).forEach(function (id) {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
@@ -1330,6 +1370,7 @@
             state.filters.trades.experiment = document.getElementById('filterExperiment').value;
             state.filters.trades.side = document.getElementById('filterSide').value;
             state.filters.trades.reason = document.getElementById('filterReason').value;
+            state.filters.trades.pnl = document.getElementById('filterPnL').value;
             state.filters.trades.dateFrom = document.getElementById('filterDateFrom').value;
             state.filters.trades.dateTo = document.getElementById('filterDateTo').value;
             state.filters.trades.symbol = document.getElementById('filterSymbol').value.trim().toUpperCase();
@@ -1344,6 +1385,10 @@
             if (f.experiment && t.experiment_id !== f.experiment) return false;
             if (f.side && t.side !== f.side) return false;
             if (f.reason && t.reason !== f.reason) return false;
+            if (f.pnl && t.side === 'sell') {
+                if (f.pnl === 'profit' && (t.net_pnl === null || t.net_pnl <= 0)) return false;
+                if (f.pnl === 'loss' && (t.net_pnl === null || t.net_pnl >= 0)) return false;
+            }
             const d = t.fill_date || t.trade_date || '';
             if (f.dateFrom && d < f.dateFrom) return false;
             if (f.dateTo && d > f.dateTo) return false;
@@ -1362,6 +1407,23 @@
         const start = (page - 1) * pageSize;
         const rows = filtered.slice(start, start + pageSize).map(function (t) {
             const amount = (fmt.isNum(t.price) && fmt.isNum(t.quantity)) ? t.price * t.quantity : null;
+            const isSell = t.side === 'sell';
+            const pnlCell = function (val, reason, dp, isPct) {
+                if (val === null || val === undefined || !fmt.isNum(val)) {
+                    if (isSell && reason) return naCell(reason);
+                    return absentZero('不适用');  // Buy trades show N/A
+                }
+                if (isPct) {
+                    const cls = val > 0 ? 'positive' : (val < 0 ? 'negative' : '');
+                    return '<span class="mono ' + cls + '">' + fmt.pct(val, dp === undefined ? 4 : dp) + '</span>';
+                }
+                const cls = val > 0 ? 'positive' : (val < 0 ? 'negative' : '');
+                return '<span class="mono ' + cls + '">' + fmt.money(val, dp === undefined ? 2 : dp) + '</span>';
+            };
+            const netPnl = t.net_pnl;
+            const netReturn = t.net_return_rate;
+            const holding = t.holding_days;
+            const cumPnl = t.cumulative_realized_pnl;
             return '<tr>' +
                 '<td>' + esc(t.experiment_label) + '</td>' +
                 '<td><span class="badge ' + (t.group === 'C' ? 'badge-info' : 'badge-warning') + '">' + esc(t.group) + '</span></td>' +
@@ -1375,10 +1437,14 @@
                 '<td class="mono">' + (fmt.isNum(t.commission) ? fmt.money(t.commission, 2) : naInline('缺佣金字段')) + '</td>' +
                 '<td class="mono">' + (fmt.isNum(t.tax) ? fmt.money(t.tax, 2) : naInline('缺印花税字段')) + '</td>' +
                 '<td>' + esc(t.reason || '-') + '</td>' +
+                '<td>' + pnlCell(netPnl, t.unknown_fields && t.unknown_fields.length ? t.unknown_fields.join(', ') : 'P&L数据缺失') + '</td>' +
+                '<td>' + pnlCell(netReturn, null, 4, true) + '</td>' +
+                '<td class="mono">' + (fmt.isNum(holding) ? holding : (isSell ? naInline('缺持有期') : absentZero('不适用'))) + '</td>' +
+                '<td>' + pnlCell(cumPnl, null) + '</td>' +
                 '</tr>';
         }).join('');
         const tbody = document.getElementById('tradesTbody');
-        if (tbody) tbody.innerHTML = rows || '<tr><td colspan="12" class="sub">当前筛选无交易记录</td></tr>';
+        if (tbody) tbody.innerHTML = rows || '<tr><td colspan="16" class="sub">当前筛选无交易记录</td></tr>';
         const info = document.getElementById('tradesInfo');
         if (info) info.textContent = '共 ' + filtered.length + ' 条 / 全部 ' + tradesRows.length + ' 条';
         const pageInfo = document.getElementById('tradesPageInfo');
