@@ -1399,6 +1399,26 @@
 
     function renderTradesTable() {
         const filtered = getFilteredTrades();
+        // Apply sorting
+        const sortCol = state.sort.trades.column;
+        const sortDir = state.sort.trades.direction;
+        if (sortCol) {
+            filtered.sort(function (a, b) {
+                let va = a[sortCol];
+                let vb = b[sortCol];
+                // Handle null/undefined values
+                if (va === null || va === undefined) va = sortDir === 'asc' ? Infinity : -Infinity;
+                if (vb === null || vb === undefined) vb = sortDir === 'asc' ? Infinity : -Infinity;
+                // String comparison for non-numeric columns
+                if (typeof va === 'string' && typeof vb === 'string') {
+                    return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+                }
+                // Numeric comparison
+                if (va < vb) return sortDir === 'asc' ? -1 : 1;
+                if (va > vb) return sortDir === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
         const pageSize = state.pagination.trades.pageSize;
         let page = state.pagination.trades.page;
         const totalPages = Math.ceil(filtered.length / pageSize) || 1;
