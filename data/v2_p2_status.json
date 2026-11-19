@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-19T05:26:21+00:00",
+  "generated_at": "2026-11-19T05:30:13+00:00",
   "task": "GO-Strategy-V2-P2",
   "title": "V2实施状态",
   "completion_status": "goldone_strategy_v2_p2_five_seats_and_holding_review_integrated",
@@ -158,8 +158,8 @@
       "last_score_date": "2025-06-19",
       "score_rows": 1140,
       "status_counts": {
-        "insufficient": 570,
-        "sufficient": 570
+        "sufficient": 570,
+        "insufficient": 570
       },
       "sample_only_rows": 1140,
       "financial_sample_size_range": [
