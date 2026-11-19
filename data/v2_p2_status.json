@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-19T05:30:13+00:00",
+  "generated_at": "2026-11-19T05:33:35+00:00",
   "task": "GO-Strategy-V2-P2",
   "title": "V2实施状态",
   "completion_status": "goldone_strategy_v2_p2_five_seats_and_holding_review_integrated",
@@ -218,7 +218,7 @@
   "fixture_summary": {
     "orders": 6,
     "reviews": 21,
-    "final_equity": 1107904.42,
+    "final_equity": 1097464.42,
     "total_fees": 456.64,
     "total_realized_pnl": -2118.97
   },
