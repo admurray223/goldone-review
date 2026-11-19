@@ -1,1 +1,42 @@
-{"schema_version":"3.0.0","contract_version":"1.0.0","formal_baseline":"D2C","data_as_of":"2026-07-29","generated_at":"2026-11-18T12:13:23.187129","generator":"GO-Strategy-V2-P1-R1","description":"GoldOne 实验审阅台数据包 - 卖出净盈亏对账与公网发布","experiments":{"C_original":{"group":"C","variant":"original"},"R_original":{"group":"R","variant":"original"},"C_fixed":{"group":"C","variant":"fixed"},"R_fixed":{"group":"R","variant":"fixed"}}}
+{
+  "schema_version": "3.1.0",
+  "contract_version": "1.0.0",
+  "formal_baseline": "D2C",
+  "data_as_of": "2026-07-29",
+  "generated_at": "2026-11-19T05:30:00+00:00",
+  "generator": "GO-Strategy-V2-P2",
+  "description": "GoldOne 实验审阅台数据包 - 四组历史实验 + V2 P2 实施状态与fixture演示",
+  "experiments": {
+    "C_original": {
+      "group": "C",
+      "variant": "original"
+    },
+    "R_original": {
+      "group": "R",
+      "variant": "original"
+    },
+    "C_fixed": {
+      "group": "C",
+      "variant": "fixed"
+    },
+    "R_fixed": {
+      "group": "R",
+      "variant": "fixed"
+    }
+  },
+  "file_hashes": {
+    "sell_pnl.json": "4782b9b333c13a238f002d56173bf87a02910579e3dc9e9bffc2b0079550e160",
+    "sell_pnl_summaries.json": "1f0af3989cc3306dcce90dd8eb6b107cc7cafe2e0295c6b8ca551473725536cb"
+  },
+  "sell_pnl_included": true,
+  "sell_pnl_price_mode": "adjusted_virtual",
+  "sell_pnl_note": "Per-sell net P&L calculated from trades using FIFO cost allocation. net_return_rate = net_pnl / (buy_price_cost + buy_commission_allocated). Stored as decimal ratio, displayed as percentage.",
+  "v2_p2": {
+    "completion_status": "goldone_strategy_v2_p2_five_seats_and_holding_review_integrated",
+    "fixture_only": true,
+    "demo_notice": "V2 P2 case data is a fixture functional demonstration, not a formal backtest, and is not mixed with the four historical experiments.",
+    "status_file": "v2_p2_status.json",
+    "case_file": "v2_p2_case.json",
+    "readiness_status": "v2_fixture_integrated_real_data_backtest_blocked"
+  }
+}

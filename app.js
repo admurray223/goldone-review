@@ -66,7 +66,9 @@
         'security_scan.json',
         'sell_pnl.json',
         'sell_pnl_summaries.json',
-        'reconciliation.json'
+        'reconciliation.json',
+        'v2_p2_status.json',
+        'v2_p2_case.json'
     ];
 
     const state = {
@@ -678,6 +680,7 @@
         cost: renderCostAttribution,
         behaviour: renderBehaviour,
         quality: renderQuality,
+        v2: renderV2P2,
         history: renderHistory,
         feedback: renderFeedbackPage
     };
@@ -1212,7 +1215,9 @@
                     net_return_rate: p.net_return_rate,
                     holding_days: p.holding_days,
                     cumulative_realized_pnl: p.cumulative_realized_pnl,
-                    status: p.status
+                    status: p.status,
+                    unknown_fields: p.unknown_fields || [],
+                    trade_id: p.trade_id || null
                 };
             });
         });
@@ -1242,7 +1247,9 @@
                     net_pnl: pnlData ? pnlData.net_pnl : null,
                     net_return_rate: pnlData ? pnlData.net_return_rate : null,
                     holding_days: pnlData ? pnlData.holding_days : null,
-                    cumulative_realized_pnl: pnlData ? pnlData.cumulative_realized_pnl : null
+                    cumulative_realized_pnl: pnlData ? pnlData.cumulative_realized_pnl : null,
+                    unknown_fields: pnlData ? pnlData.unknown_fields : [],
+                    trade_id: pnlData ? pnlData.trade_id : (t.trade_id || null)
                 }));
             });
         });
@@ -1457,10 +1464,10 @@
                 '<td class="mono">' + (fmt.isNum(t.commission) ? fmt.money(t.commission, 2) : naInline('缺佣金字段')) + '</td>' +
                 '<td class="mono">' + (fmt.isNum(t.tax) ? fmt.money(t.tax, 2) : naInline('缺印花税字段')) + '</td>' +
                 '<td>' + esc(t.reason || '-') + '</td>' +
-                '<td>' + pnlCell(netPnl, t.unknown_fields && t.unknown_fields.length ? t.unknown_fields.join(', ') : 'P&L数据缺失') + '</td>' +
-                '<td>' + pnlCell(netReturn, null, 4, true) + '</td>' +
-                '<td class="mono">' + (fmt.isNum(holding) ? holding : (isSell ? naInline('缺持有期') : absentZero('不适用'))) + '</td>' +
-                '<td>' + pnlCell(cumPnl, null) + '</td>' +
+                '<td>' + pnlCell(netPnl, t.unknown_fields && t.unknown_fields.length ? t.unknown_fields.join(', ') : (isSell ? 'P&L数据缺失' : '不适用')) + '</td>' +
+                '<td>' + pnlCell(netReturn, (t.unknown_fields && t.unknown_fields.length ? t.unknown_fields.join(', ') : '分母缺失或为0'), 4, true) + '</td>' +
+                '<td class="mono">' + (fmt.isNum(holding) ? holding : (isSell ? (t.unknown_fields && t.unknown_fields.length ? naCell(t.unknown_fields.join(', ')) : naInline('缺持有期')) : absentZero('不适用'))) + '</td>' +
+                '<td>' + pnlCell(cumPnl, isSell ? null : '不适用') + '</td>' +
                 '</tr>';
         }).join('');
         const tbody = document.getElementById('tradesTbody');
@@ -1710,6 +1717,119 @@
             '<div class="table-container"><table><thead><tr><th>代码</th><th>交易所</th></tr></thead><tbody>' +
             ((uni.bj_codes || []).map(function (s) { return '<tr><td class="mono">' + esc(s) + '</td><td>BJ</td></tr>'; }).join('') || '<tr><td colspan="2">暂无数据</td></tr>') +
             '</tbody></table></div></div></div>';
+    }
+
+    function renderV2P2(container) {
+        const st = state.data.v2_p2_status;
+        const cs = state.data.v2_p2_case;
+        if (!st || !cs) {
+            container.innerHTML = sectionHeader('V2实施状态', 'P2 状态数据缺失') +
+                '<div class="alert alert-warning">缺少 v2_p2_status.json 或 v2_p2_case.json，无法展示 V2 实施状态。</div>';
+            return;
+        }
+        const stateBadge = function (value) {
+            const text = String(value || '');
+            let cls = 'badge-neutral';
+            if (text.indexOf('已集成') >= 0 || text.indexOf('已确认') >= 0 || text.indexOf('已验证') >= 0) cls = 'badge-success';
+            else if (text.indexOf('不具备') >= 0 || text.indexOf('不足') >= 0 || text.indexOf('缺失') >= 0 || text.indexOf('待确认') >= 0) cls = 'badge-warning';
+            return '<span class="badge ' + cls + '">' + esc(text) + '</span>';
+        };
+        const statusRows = (st.items || []).map(function (it) {
+            return '<tr><td><strong>' + esc(it.label) + '</strong><div class="sub mono">' + esc(it.key) + '</div></td>' +
+                '<td>' + stateBadge(it.state) + '</td>' +
+                '<td class="text-wrap">' + esc(it.detail) + '</td>' +
+                '<td class="text-wrap mono">' + esc(it.evidence || '') + '</td>' +
+                '<td class="mono">' + esc((it.rule_ids || []).join(', ')) + '</td></tr>';
+        }).join('');
+        const blockerRows = ((st.readiness || {}).blockers || []).map(function (b) {
+            return '<tr><td class="mono">' + esc(b.code) + '</td><td class="text-wrap">' + esc(b.detail) +
+                '</td><td class="text-wrap">' + esc(b.required_for) + '</td></tr>';
+        }).join('') || '<tr><td colspan="3">无阻塞项</td></tr>';
+        const fin = (st.readiness || {}).financial_coverage || {};
+        const orderRows = (cs.orders || []).map(function (o) {
+            const fills = (o.fills || []).map(function (f) {
+                return esc(f.fill_date) + ' × ' + f.quantity + ' @ ' + fmt.money(f.fill_price, 4);
+            }).join('<br>') || '—';
+            return '<tr><td class="mono">' + esc(o.order_id) + '</td><td class="mono">' + esc(o.symbol) + '</td>' +
+                '<td>' + esc(o.side) + '</td><td>' + esc(o.status) + '</td><td class="mono">' + o.quantity +
+                '</td><td class="mono">' + esc(o.signal_date) + '</td><td class="text-wrap">' + fills +
+                '</td><td class="text-wrap">' + esc(o.reason) + '</td></tr>';
+        }).join('');
+        const reviewRows = (cs.reviews || []).map(function (r) {
+            const net = fmt.isNum(r.current_net_return) ? fmt.pct(r.current_net_return, 2) : naInline('行情缺失');
+            return '<tr><td class="mono">' + esc(r.review_date) + '</td><td class="mono">' + esc(r.symbol) +
+                '</td><td class="mono">' + r.holding_trading_days + '</td><td class="text-wrap">' +
+                esc((r.triggers || []).join(', ')) + '</td><td>' + esc(r.conclusion) + '</td>' +
+                '<td class="mono">' + net + '</td><td>' + esc(r.data_integrity) + '</td>' +
+                '<td class="text-wrap">' + esc(r.next_scheduled_review_date || '—') + '</td></tr>';
+        }).join('');
+        const dailyRows = (cs.daily || []).map(function (d) {
+            const checks = d.checks || {};
+            const ok = Object.keys(checks).filter(function (k) { return typeof checks[k] === 'boolean'; })
+                .every(function (k) { return checks[k]; });
+            return '<tr><td class="mono">' + esc(d.trade_date) + '</td><td class="mono">' + fmt.money(d.cash, 2) +
+                '</td><td class="mono">' + fmt.money(d.market_value, 2) + '</td><td class="mono">' + fmt.money(d.equity, 2) +
+                '</td><td class="mono">' + d.occupied_seats + '</td><td class="text-wrap mono">' +
+                esc(Object.keys(d.occupied_symbols || {}).join(', ') || '—') + '</td><td class="mono">' +
+                fmt.money(d.fees_cumulative, 2) + '</td><td>' + (ok ? '<span class="ok">通过</span>' : '<span class="miss">失败</span>') + '</td></tr>';
+        }).join('');
+        const summary = cs.summary || {};
+        container.innerHTML = sectionHeader('V2实施状态 · P2',
+            '五席位、财务硬门禁、5交易日与事件复核；fixture闭环已集成，正式数据仍受限') +
+            '<div class="alert alert-warning"><strong>功能演示：</strong>' + esc(cs.disclaimer || '') +
+            ' 本页 fixture 案例不与下方四组历史真实数据实验混算。</div>' +
+            '<div class="card"><div class="card-header"><span class="card-title">实施状态</span>' +
+            '<span class="card-sub">完成状态 ' + esc(st.completion_status) + '</span></div><div class="card-body">' +
+            '<div class="table-container"><table><thead><tr><th>项目</th><th>状态</th><th>说明</th><th>证据</th><th>规则</th></tr></thead><tbody>' +
+            statusRows + '</tbody></table></div></div></div>' +
+            '<div class="metric-grid" style="margin-top:20px;">' +
+            metricCard('真实财务覆盖股票', '<span class="mono">' +
+                esc(fmt.isNum(fin.distinct_symbols) ? String(fin.distinct_symbols) : '暂无数据') +
+                ' / ' + esc(fmt.isNum(fin.expected_stock_days) ? '预期股票日 ' + fin.expected_stock_days : '预期股票日 暂无数据') +
+                '</span>') +
+            metricCard('sufficient 股票日覆盖', fmt.isNum(fin.sufficient_stock_day_coverage) ? fmt.pct(fin.sufficient_stock_day_coverage, 4) : naInline('缺字段')) +
+            metricCard('正式评分配置', ((st.readiness || {}).scoring || {}).production_scoring_configured ? '已配置' : '<span class="miss">未配置</span>') +
+            metricCard('正式收益曲线', (st.readiness || {}).status === 'v2_real_data_ready_for_formal_backtest' ? '具备' : '<span class="miss">不具备</span>') +
+            '</div>' +
+            '<div class="card" style="margin-top:20px;"><div class="card-header"><span class="card-title">真实数据阻塞项</span>' +
+            '<span class="card-sub">状态 ' + esc((st.readiness || {}).status) + '</span></div><div class="card-body">' +
+            '<div class="table-container"><table><thead><tr><th>代码</th><th>说明</th><th>影响</th></tr></thead><tbody>' +
+            blockerRows + '</tbody></table></div></div></div>' +
+            '<div class="card" style="margin-top:20px;"><div class="card-header"><span class="card-title">fixture 完整案例（功能演示）</span>' +
+            '<span class="card-sub">非正式回测，不与历史实验混合</span></div><div class="card-body">' +
+            '<div class="metric-grid">' +
+            metricCard('fixture 期末权益', fmt.money(summary.final_equity, 2), 'mono') +
+            metricCard('fixture 总收益', fmt.pct(summary.total_return, 4)) +
+            metricCard('fixture 费用', fmt.money(summary.total_fees, 2), 'mono') +
+            metricCard('fixture 已实现净盈亏', fmt.money(summary.total_realized_pnl, 2), 'mono') +
+            metricCard('订单数', String(summary.orders === undefined ? '暂无数据' : summary.orders)) +
+            metricCard('复核数', String(summary.reviews === undefined ? '暂无数据' : summary.reviews)) +
+            metricCard('退出信号', String(summary.exit_signals === undefined ? '暂无数据' : summary.exit_signals)) +
+            metricCard('NOT_EVALUABLE 复核', String(summary.not_evaluable_reviews === undefined ? '暂无数据' : summary.not_evaluable_reviews)) +
+            '</div></div></div>' +
+            '<div class="card" style="margin-top:20px;"><div class="card-header"><span class="card-title">fixture 订单与成交</span></div><div class="card-body">' +
+            '<div class="table-container"><table><thead><tr><th>订单</th><th>股票</th><th>方向</th><th>状态</th><th>数量</th><th>信号日</th><th>成交</th><th>原因</th></tr></thead><tbody>' +
+            orderRows + '</tbody></table></div></div></div>' +
+            '<div class="card" style="margin-top:20px;"><div class="card-header"><span class="card-title">fixture 持有复核</span></div><div class="card-body">' +
+            '<div class="table-container" style="max-height:520px;overflow:auto;"><table><thead><tr><th>复核日</th><th>股票</th><th>持有交易日</th><th>触发</th><th>结论</th><th>当前净收益</th><th>数据完整性</th><th>下一定期复核</th></tr></thead><tbody>' +
+            reviewRows + '</tbody></table></div></div></div>' +
+            '<div class="card" style="margin-top:20px;"><div class="card-header"><span class="card-title">fixture 每日席位与资金对账</span></div><div class="card-body">' +
+            '<div class="table-container" style="max-height:520px;overflow:auto;"><table><thead><tr><th>日期</th><th>现金</th><th>市值</th><th>权益</th><th>占用席位</th><th>占用股票</th><th>累计费用</th><th>对账</th></tr></thead><tbody>' +
+            dailyRows + '</tbody></table></div></div></div>' +
+            '<div class="card" style="margin-top:20px;"><div class="card-header"><span class="card-title">fixture 等待候选</span>' +
+            '<span class="card-sub">满5只时不卖旧持仓，等待席位并在信号日重新核验</span></div><div class="card-body">' +
+            '<div class="table-container"><table><thead><tr><th>候选</th><th>优先级</th><th>等待原因</th><th>提升尝试</th><th>最近拒绝原因</th></tr></thead><tbody>' +
+            ((cs.wait_queue || []).map(function (w) {
+                const hist = (w.reject_history || []);
+                const last = hist.length ? hist[hist.length - 1] : null;
+                return '<tr><td class="mono">' + esc(w.symbol) + '</td><td class="mono">' + w.priority +
+                    '</td><td class="text-wrap">' + esc(w.queued_reason || '') + '</td><td class="mono">' +
+                    w.promotion_attempts + '</td><td class="text-wrap">' +
+                    esc(last ? (last.reason + (last.details ? ': ' + (Array.isArray(last.details) ? last.details.join(', ') : last.details) : '')) : '—') +
+                    '</td></tr>';
+            }).join('') || '<tr><td colspan="5">无等待候选</td></tr>') +
+            '</tbody></table></div></div></div>' +
+            '<div class="alert alert-info" style="margin-top:16px;"><strong>边界：</strong> 历史V1的两百多只持仓不代表V2；本页四条历史实验仍按各自 Original/Fixed × C/R 口径展示，不被V2 fixture案例改写。</div>';
     }
 
     function renderHistory(container) {

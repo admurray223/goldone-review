@@ -1,0 +1,231 @@
+{
+  "generated_at": "2026-11-19T05:26:21+00:00",
+  "task": "GO-Strategy-V2-P2",
+  "title": "V2实施状态",
+  "completion_status": "goldone_strategy_v2_p2_five_seats_and_holding_review_integrated",
+  "fixture_demo_notice": "下方 fixture 完整案例为功能演示，不与历史真实数据实验混合。",
+  "items": [
+    {
+      "key": "max_five_seats",
+      "label": "最多5只席位",
+      "state": "fixture已集成",
+      "detail": "已持仓+待成交买单去重合计≤5；部分买入占位；部分卖出不释放；拒绝/取消释放预留",
+      "evidence": "sixth candidate queued; 5 seats filled",
+      "rule_ids": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ]
+    },
+    {
+      "key": "financial_gate",
+      "label": "财务硬门禁",
+      "state": "fixture已集成 / 真实数据不足",
+      "detail": "真实财务评分仅覆盖 6 / 1932 只；缺失/过期/时点不安全/成长不达标均拒绝",
+      "evidence": "sufficient stock-day coverage 0.00064137",
+      "rule_ids": [
+        "R9",
+        "R10",
+        "R11"
+      ]
+    },
+    {
+      "key": "five_day_review",
+      "label": "5交易日定期完整复核",
+      "state": "fixture已集成",
+      "detail": "D0成交，第5/10/15交易日收盘复核；自然日不参与",
+      "evidence": "CCC.SZ D5/D10/D15",
+      "rule_ids": [
+        "R12",
+        "R18",
+        "R19"
+      ]
+    },
+    {
+      "key": "event_review",
+      "label": "事件触发复核",
+      "state": "fixture已集成",
+      "detail": "大盘/板块/个股/财务/公司行为/数据缺失均触发；持续事件不重复制造，但每日监测",
+      "evidence": "AAA.SZ D1 event review; BBB.SZ merged review",
+      "rule_ids": [
+        "R15",
+        "R16",
+        "R17",
+        "R21"
+      ]
+    },
+    {
+      "key": "fixed_take_profit",
+      "label": "固定止盈已移除",
+      "state": "fixture已确认",
+      "detail": "无15%止盈、无移动止盈、无固定止损、无期限清仓",
+      "evidence": "DDD.SZ +56% held; validate_no_fixed_take_profit",
+      "rule_ids": [
+        "R24",
+        "R19"
+      ]
+    },
+    {
+      "key": "scoring",
+      "label": "两层触发+第三层评分",
+      "state": "接口已实现 / 具体评分待确认",
+      "detail": "仅接受显式配置的0-10分；缺失返回NOT_EVALUABLE；三层同时触发仍走同一配对评分，不绕过评分",
+      "evidence": "fixture 4.0→hold, 5.0→exit",
+      "rule_ids": [
+        "R25",
+        "R26",
+        "R27",
+        "R28"
+      ]
+    },
+    {
+      "key": "execution",
+      "label": "真实执行与公司行为",
+      "state": "fixture通道已验证 / 真实会计缺失",
+      "detail": "raw开盘成交、raw收盘估值、adjusted特征；无公司行为表时明确阻塞",
+      "evidence": "CA001.SZ blocked on unsupported cash dividend",
+      "rule_ids": [
+        "R29",
+        "R30"
+      ]
+    },
+    {
+      "key": "formal_backtest",
+      "label": "正式回测是否具备条件",
+      "state": "不具备",
+      "detail": "财务、评分、公司行为三类真实数据均未就绪；状态为 v2_fixture_integrated_real_data_backtest_blocked",
+      "evidence": "readiness blockers: financial_symbol_coverage_incomplete, financial_stock_day_coverage_incomplete, financial_window_coverage_incomplete, production_scoring_unconfigured, corporate_action_table_missing, real_sector_fund_flow_unavailable",
+      "rule_ids": [
+        "R32"
+      ]
+    }
+  ],
+  "readiness": {
+    "status": "v2_fixture_integrated_real_data_backtest_blocked",
+    "blockers": [
+      {
+        "code": "financial_symbol_coverage_incomplete",
+        "detail": "6 of 1932 universe symbols have financial score rows",
+        "required_for": "financial hard gate for every candidate"
+      },
+      {
+        "code": "financial_stock_day_coverage_incomplete",
+        "detail": "570 sufficient stock-day rows vs 888720 expected",
+        "required_for": "financial hard gate for every signal date"
+      },
+      {
+        "code": "financial_window_coverage_incomplete",
+        "detail": "financial scores end 2025-06-19 before the price window end 2026-07-29",
+        "required_for": "financial hard gate over the full 460-trading-day window"
+      },
+      {
+        "code": "production_scoring_unconfigured",
+        "detail": "Market/sector/stock production scores, pullback A/B, fund-flow and no-bid definitions are unconfirmed",
+        "required_for": "two-layer plus third-score exit and entry scoring"
+      },
+      {
+        "code": "corporate_action_table_missing",
+        "detail": "No dedicated dividend/split/rights table exists in the baseline database",
+        "required_for": "real-price execution and corporate action accounting"
+      },
+      {
+        "code": "real_sector_fund_flow_unavailable",
+        "detail": "No real sector net-flow data; only price/breadth proxy exists and cannot stand in for formal V2 sector scoring",
+        "required_for": "sector dimension trigger and score"
+      }
+    ],
+    "financial_coverage": {
+      "score_table_present": true,
+      "distinct_symbols": 6,
+      "symbols": [
+        "605138.SH",
+        "688009.SH",
+        "688055.SH",
+        "688119.SH",
+        "688148.SH",
+        "688238.SH"
+      ],
+      "sufficient_symbols": [
+        "605138.SH",
+        "688009.SH",
+        "688055.SH"
+      ],
+      "first_score_date": "2024-09-02",
+      "last_score_date": "2025-06-19",
+      "score_rows": 1140,
+      "status_counts": {
+        "insufficient": 570,
+        "sufficient": 570
+      },
+      "sample_only_rows": 1140,
+      "financial_sample_size_range": [
+        6,
+        6
+      ],
+      "expected_stock_days": 888720,
+      "sufficient_stock_day_coverage": 0.00064137,
+      "point_in_time_enforced_in_source": true,
+      "raw_tables": {
+        "income": {
+          "rows": 0,
+          "symbols": 0,
+          "present": false
+        },
+        "balance_sheet": {
+          "rows": 0,
+          "symbols": 0,
+          "present": false
+        },
+        "cashflow": {
+          "rows": 0,
+          "symbols": 0,
+          "present": false
+        },
+        "financial_indicator": {
+          "rows": 0,
+          "symbols": 0,
+          "present": false
+        }
+      }
+    },
+    "scoring": {
+      "production_score_config": null,
+      "production_scoring_configured": false,
+      "fixture_scoring_available": true,
+      "formal_scores_computable": false,
+      "reason": "No confirmed market/sector/stock score formula or weights exist; P2 only has fixture scores."
+    },
+    "corporate_actions": {
+      "dedicated_table_found": false,
+      "tables": [],
+      "policy": "Pre_close changes are not accepted as proof of a corporate action."
+    },
+    "sector_data": {
+      "sector_daily_present": true,
+      "real_fund_flow_columns": [],
+      "proxy_columns": [
+        "proxy_basis",
+        "return_breadth_proxy",
+        "return_flow_proxy"
+      ],
+      "interpretation": "sector_daily is a price/return proxy only; not real fund flow."
+    }
+  },
+  "fixture_summary": {
+    "orders": 6,
+    "reviews": 21,
+    "final_equity": 1107904.42,
+    "total_fees": 456.64,
+    "total_realized_pnl": -2118.97
+  },
+  "rule_status_counts": {
+    "implemented_fixture": 31,
+    "implemented_readiness_blocked": 1,
+    "planned_not_executed": 1,
+    "implemented_web": 1
+  }
+}
