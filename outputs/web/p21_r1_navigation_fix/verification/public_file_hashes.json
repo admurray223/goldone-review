@@ -1,0 +1,250 @@
+{
+  "task": "GO-Strategy-V2-P21-R1",
+  "checked_at": "2026-11-20T06:46:20.850368+00:00",
+  "base": "https://admurray223.github.io/goldone-review/",
+  "summary": {
+    "total": 34,
+    "passed": 34,
+    "failed": 0
+  },
+  "files": [
+    {
+      "path": "index.html",
+      "http": 200,
+      "local_sha256": "46c97d844d5e7217ac68a0eb3d9b3c96ef9a05b93e30ae66e9b9da5f188ad3e7",
+      "public_sha256": "46c97d844d5e7217ac68a0eb3d9b3c96ef9a05b93e30ae66e9b9da5f188ad3e7",
+      "pass": true
+    },
+    {
+      "path": "app.js",
+      "http": 200,
+      "local_sha256": "bf84380c0ee8af0ad13b44dc84138d6b7dc64b13437becd3eb447bc7ede73bb0",
+      "public_sha256": "bf84380c0ee8af0ad13b44dc84138d6b7dc64b13437becd3eb447bc7ede73bb0",
+      "pass": true
+    },
+    {
+      "path": "styles.css",
+      "http": 200,
+      "local_sha256": "008e90fb7a679a8641993a97951acd15122f4bdb231be09e88205a44707ae135",
+      "public_sha256": "008e90fb7a679a8641993a97951acd15122f4bdb231be09e88205a44707ae135",
+      "pass": true
+    },
+    {
+      "path": "chart.min.js",
+      "http": 200,
+      "local_sha256": "d2af8974e95271638772e9e9524db5b9a6f58d6ec2d5d781400447b4a31c681e",
+      "public_sha256": "d2af8974e95271638772e9e9524db5b9a6f58d6ec2d5d781400447b4a31c681e",
+      "pass": true
+    },
+    {
+      "path": "data/SHA256SUMS.txt",
+      "http": 200,
+      "local_sha256": "ff7ac1d5941ae005236fe6a3052dda9b2b11e4591a199d70d3c136de04cd21e8",
+      "public_sha256": "ff7ac1d5941ae005236fe6a3052dda9b2b11e4591a199d70d3c136de04cd21e8",
+      "pass": true
+    },
+    {
+      "path": "data/baseline_comparison.json",
+      "http": 200,
+      "local_sha256": "287f3e83722984fadce5423b9214cdf3a0ec29c7ae1f848ed8bb87a8bdcc36b7",
+      "public_sha256": "287f3e83722984fadce5423b9214cdf3a0ec29c7ae1f848ed8bb87a8bdcc36b7",
+      "pass": true
+    },
+    {
+      "path": "data/concentration.json",
+      "http": 200,
+      "local_sha256": "ed0dda98be6cf871d501eafce318d58f09a3d3dbc88a335c471a598daf20f0ea",
+      "public_sha256": "ed0dda98be6cf871d501eafce318d58f09a3d3dbc88a335c471a598daf20f0ea",
+      "pass": true
+    },
+    {
+      "path": "data/cost_attribution.json",
+      "http": 200,
+      "local_sha256": "24cdc3c1288f18dc4da5c2902f40377174d90b607ae40a573501c4550150fda3",
+      "public_sha256": "24cdc3c1288f18dc4da5c2902f40377174d90b607ae40a573501c4550150fda3",
+      "pass": true
+    },
+    {
+      "path": "data/cost_sensitivity.json",
+      "http": 200,
+      "local_sha256": "ec47e19a9974fabaf9aabe7c1c3d308742fe2b2cb100f6fd4689ff106633c7fc",
+      "public_sha256": "ec47e19a9974fabaf9aabe7c1c3d308742fe2b2cb100f6fd4689ff106633c7fc",
+      "pass": true
+    },
+    {
+      "path": "data/coverage.json",
+      "http": 200,
+      "local_sha256": "5023322d32afe6d12d93e6322f6bff01b3fd7211a5a0c7f2aafa909fafeb9e20",
+      "public_sha256": "5023322d32afe6d12d93e6322f6bff01b3fd7211a5a0c7f2aafa909fafeb9e20",
+      "pass": true
+    },
+    {
+      "path": "data/d2b_status.json",
+      "http": 200,
+      "local_sha256": "7222b18aaf284424c344584b8800e447c35e04e2f0ff560985169387f3a5ddad",
+      "public_sha256": "7222b18aaf284424c344584b8800e447c35e04e2f0ff560985169387f3a5ddad",
+      "pass": true
+    },
+    {
+      "path": "data/d2c_status.json",
+      "http": 200,
+      "local_sha256": "af49e5edfc4205958ad2258da97f62ffb01c30142f18249cb9dcd84e224003a3",
+      "public_sha256": "af49e5edfc4205958ad2258da97f62ffb01c30142f18249cb9dcd84e224003a3",
+      "pass": true
+    },
+    {
+      "path": "data/data_quality.json",
+      "http": 200,
+      "local_sha256": "4641c14f958fa3c7b9081a987d333a37c728f1c16c9f4e459c3516014b1dd223",
+      "public_sha256": "4641c14f958fa3c7b9081a987d333a37c728f1c16c9f4e459c3516014b1dd223",
+      "pass": true
+    },
+    {
+      "path": "data/drawdowns.json",
+      "http": 200,
+      "local_sha256": "c74dba4fb1ca1cac2c1e99ea247aa5185e4aae7553dc8d95a111fab41d7132dd",
+      "public_sha256": "c74dba4fb1ca1cac2c1e99ea247aa5185e4aae7553dc8d95a111fab41d7132dd",
+      "pass": true
+    },
+    {
+      "path": "data/equity_curves.json",
+      "http": 200,
+      "local_sha256": "fc1e09adaa2f03c51f745d145b1072f977a9d564cf2510aec818eb6a8d6f703a",
+      "public_sha256": "fc1e09adaa2f03c51f745d145b1072f977a9d564cf2510aec818eb6a8d6f703a",
+      "pass": true
+    },
+    {
+      "path": "data/experiments.json",
+      "http": 200,
+      "local_sha256": "1b092b864c600edb1a9387ba99c6fbbfaa2543c330d9c8d9b3840e0a98e09f94",
+      "public_sha256": "1b092b864c600edb1a9387ba99c6fbbfaa2543c330d9c8d9b3840e0a98e09f94",
+      "pass": true
+    },
+    {
+      "path": "data/financial_availability.json",
+      "http": 200,
+      "local_sha256": "9b913ba235be0dfef8cbcca54080e8f522b348d691fe3298941c4ee69a9915b6",
+      "public_sha256": "9b913ba235be0dfef8cbcca54080e8f522b348d691fe3298941c4ee69a9915b6",
+      "pass": true
+    },
+    {
+      "path": "data/holding_period.json",
+      "http": 200,
+      "local_sha256": "1a1c4be55b7ae16bf904a83f8b4b9b6b75e8d66e540c617213e7eb41e760f274",
+      "public_sha256": "1a1c4be55b7ae16bf904a83f8b4b9b6b75e8d66e540c617213e7eb41e760f274",
+      "pass": true
+    },
+    {
+      "path": "data/index_data.json",
+      "http": 200,
+      "local_sha256": "f623bb7a821b9bf4f78fac8905077a6418d39ce6fdcc70ac55821d9920497a87",
+      "public_sha256": "f623bb7a821b9bf4f78fac8905077a6418d39ce6fdcc70ac55821d9920497a87",
+      "pass": true
+    },
+    {
+      "path": "data/manifest.json",
+      "http": 200,
+      "local_sha256": "0987ab2e11e01840db46c79ce536a1627646b845afb1eda35eddf4628ddc48ab",
+      "public_sha256": "0987ab2e11e01840db46c79ce536a1627646b845afb1eda35eddf4628ddc48ab",
+      "pass": true
+    },
+    {
+      "path": "data/reconciliation.json",
+      "http": 200,
+      "local_sha256": "6a00696d420ac5bcf35cf77e9826302fff89753e51b8279c60bc2bfc315fac2c",
+      "public_sha256": "6a00696d420ac5bcf35cf77e9826302fff89753e51b8279c60bc2bfc315fac2c",
+      "pass": true
+    },
+    {
+      "path": "data/risk_events.json",
+      "http": 200,
+      "local_sha256": "d3501bb14225b01740b2d485e8a2a19181173dd45207f1a8c2e03a1d48351bcb",
+      "public_sha256": "d3501bb14225b01740b2d485e8a2a19181173dd45207f1a8c2e03a1d48351bcb",
+      "pass": true
+    },
+    {
+      "path": "data/security_scan.json",
+      "http": 200,
+      "local_sha256": "d5ea2b9bbe04078f5207feffac94032c8282168e5a1914f1048fbc99ee7e5296",
+      "public_sha256": "d5ea2b9bbe04078f5207feffac94032c8282168e5a1914f1048fbc99ee7e5296",
+      "pass": true
+    },
+    {
+      "path": "data/segment_labels.json",
+      "http": 200,
+      "local_sha256": "9f79a5747c15cfb377706f753bcbd1387a786a9a6d811253fa4e421423f5957c",
+      "public_sha256": "9f79a5747c15cfb377706f753bcbd1387a786a9a6d811253fa4e421423f5957c",
+      "pass": true
+    },
+    {
+      "path": "data/segment_metrics.json",
+      "http": 200,
+      "local_sha256": "4c6a63ecae75e8a2faade09b52782f23230570072eeba002db453c35e2699b67",
+      "public_sha256": "4c6a63ecae75e8a2faade09b52782f23230570072eeba002db453c35e2699b67",
+      "pass": true
+    },
+    {
+      "path": "data/sell_pnl.json",
+      "http": 200,
+      "local_sha256": "96f8fdd402e112a08c1e3a3758de283dcfa9a3264e71d74b542486a3713f9977",
+      "public_sha256": "96f8fdd402e112a08c1e3a3758de283dcfa9a3264e71d74b542486a3713f9977",
+      "pass": true
+    },
+    {
+      "path": "data/sell_pnl_summaries.json",
+      "http": 200,
+      "local_sha256": "5e9f028fd02f99c8e6662bdad3c9696d85df541ac98d1ad8f2b51cd34ca09a3e",
+      "public_sha256": "5e9f028fd02f99c8e6662bdad3c9696d85df541ac98d1ad8f2b51cd34ca09a3e",
+      "pass": true
+    },
+    {
+      "path": "data/trades.json",
+      "http": 200,
+      "local_sha256": "defe79a0039d9ed4d06c2039d5d02708eab1a0c5fbf2d846dc542f48b87f58b6",
+      "public_sha256": "defe79a0039d9ed4d06c2039d5d02708eab1a0c5fbf2d846dc542f48b87f58b6",
+      "pass": true
+    },
+    {
+      "path": "data/trading_frequency.json",
+      "http": 200,
+      "local_sha256": "9807706f7d58e54962ae5dcb598de9fc32e3ea6cc27b8d5f756e015fd66716bf",
+      "public_sha256": "9807706f7d58e54962ae5dcb598de9fc32e3ea6cc27b8d5f756e015fd66716bf",
+      "pass": true
+    },
+    {
+      "path": "data/universe_info.json",
+      "http": 200,
+      "local_sha256": "b3deadcb47cd0a6a9114458884e1d894e1a0a22f864ce35850c282ec53e06f8c",
+      "public_sha256": "b3deadcb47cd0a6a9114458884e1d894e1a0a22f864ce35850c282ec53e06f8c",
+      "pass": true
+    },
+    {
+      "path": "data/v2_p2_case.json",
+      "http": 200,
+      "local_sha256": "5ce711584c982573e7539048fe2ca5a869d0ea6d1d0845001779d0d5578ef4fb",
+      "public_sha256": "5ce711584c982573e7539048fe2ca5a869d0ea6d1d0845001779d0d5578ef4fb",
+      "pass": true
+    },
+    {
+      "path": "data/v2_p2_status.json",
+      "http": 200,
+      "local_sha256": "a356a68be8aeeeceea6728bff6b3afe8b516eb3de1a747c488b98e118fa4aeaa",
+      "public_sha256": "a356a68be8aeeeceea6728bff6b3afe8b516eb3de1a747c488b98e118fa4aeaa",
+      "pass": true
+    },
+    {
+      "path": "data/v2_review.json",
+      "http": 200,
+      "local_sha256": "be996e677f184122b9bfa9951eff450280f305e573ecbe0256449b1a4964cbae",
+      "public_sha256": "be996e677f184122b9bfa9951eff450280f305e573ecbe0256449b1a4964cbae",
+      "pass": true
+    },
+    {
+      "path": "data/version_history.json",
+      "http": 200,
+      "local_sha256": "f7a9e2b2d266fbabdff8369cb5ac43dc2c6685e3c57b40dfa09f8fb1473a6c03",
+      "public_sha256": "f7a9e2b2d266fbabdff8369cb5ac43dc2c6685e3c57b40dfa09f8fb1473a6c03",
+      "pass": true
+    }
+  ]
+}

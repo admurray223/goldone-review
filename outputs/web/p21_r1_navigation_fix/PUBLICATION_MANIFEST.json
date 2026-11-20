@@ -1,0 +1,58 @@
+{
+  "task": "GO-Strategy-V2-P21-R1",
+  "status": "COMPLETED",
+  "decision": "ACCEPT_P21_R1_NAVIGATION_FIX",
+  "date": "2026-11-20",
+  "repo": "https://github.com/admurray223/goldone-review.git",
+  "branch": "master",
+  "public_url": "https://admurray223.github.io/goldone-review/",
+  "baseline_commit": "dd89a1fbb160f25a7d1d72f303aa0b51810d7d8d",
+  "fix_commit": "f3746095ffb3c924a5a18fbaee7bac96e224c7a0",
+  "pages_source": {
+    "branch": "master",
+    "path": "/",
+    "build_type": "legacy"
+  },
+  "pages_build": {
+    "id": 1386308501,
+    "status": "built",
+    "commit": "f3746095ffb3c924a5a18fbaee7bac96e224c7a0",
+    "updated_at": "2026-11-20T06:45:06Z",
+    "duration_ms": 21419
+  },
+  "changed_site_files": {
+    "styles.css": "008e90fb7a679a8641993a97951acd15122f4bdb231be09e88205a44707ae135"
+  },
+  "unchanged_site_files": {
+    "index.html": "46c97d844d5e7217ac68a0eb3d9b3c96ef9a05b93e30ae66e9b9da5f188ad3e7",
+    "app.js": "bf84380c0ee8af0ad13b44dc84138d6b7dc64b13437becd3eb447bc7ede73bb0",
+    "chart.min.js": "d2af8974e95271638772e9e9524db5b9a6f58d6ec2d5d781400447b4a31c681e",
+    "data/v2_review.json": "be996e677f184122b9bfa9951eff450280f305e573ecbe0256449b1a4964cbae"
+  },
+  "tests": {
+    "pre_fix_baseline_nav_clicks": {"total": 68, "passed": 55, "failed": 13},
+    "local_browser": {"total": 156, "passed": 156, "failed": 0, "skipped": 0},
+    "public_browser": {"total": 156, "passed": 156, "failed": 0, "skipped": 0},
+    "public_nav_clicks": {"total": 76, "passed": 76, "failed": 0},
+    "public_file_hashes": {"total": 34, "passed": 34, "failed": 0},
+    "data_hashes_pre_post_public": {"total": 30, "passed": 30, "failed": 0},
+    "console_errors": 0,
+    "failed_requests": 0,
+    "bad_http_responses": 0,
+    "external_requests": 0
+  },
+  "viewports": [
+    {"width": 1920, "height": 1080, "header_height": 115.046875, "nav_rows": 1, "nav_scroll_max": 0},
+    {"width": 1440, "height": 900, "header_height": 154.09375, "nav_rows": 2, "nav_scroll_max": 0},
+    {"width": 1024, "height": 768, "header_height": 158.09375, "nav_rows": 2, "nav_scroll_max": 0},
+    {"width": 390, "height": 844, "header_height": 156.046875, "nav_rows": 1, "nav_scroll_max": 1271}
+  ],
+  "feedback": {
+    "storage_key": "goldone_feedback",
+    "isolated_context": true,
+    "existing_sentinel_preserved": true,
+    "add_and_reload_persisted": true
+  },
+  "rollback": "git revert --no-edit f3746095ffb3c924a5a18fbaee7bac96e224c7a0 && git push origin master",
+  "evidence_dir": "/Users/z/GoldOne/outputs/web/p21_r1_navigation_fix/"
+}

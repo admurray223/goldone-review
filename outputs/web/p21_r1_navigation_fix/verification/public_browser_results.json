@@ -1,0 +1,1160 @@
+{
+  "task": "GO-Strategy-V2-P21-R1",
+  "mode": "public",
+  "base": "https://admurray223.github.io/goldone-review/",
+  "started_at": "2026-11-20T06:46:22.534262+00:00",
+  "finished_at": "2026-11-20T06:47:38.675118+00:00",
+  "viewports": [
+    {
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "summary": {
+    "total": 156,
+    "passed": 156,
+    "failed": 0
+  },
+  "failed": [],
+  "checks": [
+    {
+      "id": "PUBLIC-1920-01-load",
+      "pass": true,
+      "detail": "app ready",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-02-console-errors",
+      "pass": true,
+      "detail": "{'console': [], 'pageerror': []}",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-03-request-failures",
+      "pass": true,
+      "detail": "{'failed': [], 'bad_status': []}",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-04-no-external-requests",
+      "pass": true,
+      "detail": "[]",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-05-no-page-horizontal-overflow",
+      "pass": true,
+      "detail": "{'docScrollWidth': 1920, 'docClientWidth': 1920, 'bodyScrollWidth': 1920, 'viewport': 1920}",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-06-title-and-nav-separate-rows",
+      "pass": true,
+      "detail": "{'navTop': 60, 'topRowBottom': 50, 'headerTop': 0, 'headerHeight': 115.046875}",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-07-title-not-occluded",
+      "pass": true,
+      "detail": "{'left': 24, 'right': 187.25, 'top': 16, 'bottom': 44, 'width': 163.25, 'height': 28}",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-08-sticky-header",
+      "pass": true,
+      "detail": "sticky",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-nav-overview",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-nav-nav",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-nav-comparison",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-nav-segments",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-nav-trades",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-nav-riskfix",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-nav-concentration",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-nav-cost",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-nav-behaviour",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-nav-quality",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-nav-v2",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-nav-v2_overview",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-nav-v2_timeline",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-nav-v2_why",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-nav-v2_trades",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-nav-history",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-nav-feedback",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-09-leftmost-visible",
+      "pass": true,
+      "detail": "{'left': 24, 'right': 79.8125, 'top': 69, 'bottom': 104.046875, 'cx': 51.90625, 'cy': 86.5234375, 'inViewport': True, 'inNavBox': True, 'hitPage': 'overview', 'navScrollLeft': 0, 'navScrollMax': 0, 'navClientWidth': 1872, 'navScrollWidth': 1872}",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-10-leftmost-click",
+      "pass": true,
+      "detail": "overview clicked",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-11-rightmost-reachable",
+      "pass": true,
+      "detail": "{'left': 1581.515625, 'right': 1661.125, 'top': 69, 'bottom': 104.046875, 'cx': 1621.3203125, 'cy': 86.5234375, 'inViewport': True, 'inNavBox': True, 'hitPage': 'feedback', 'navScrollLeft': 0, 'navScrollMax': 0, 'navClientWidth': 1872, 'navScrollWidth': 1872}",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-12-rightmost-click",
+      "pass": true,
+      "detail": "feedback clicked",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-13-v2-return-v1",
+      "pass": true,
+      "detail": "v2_overview -> overview",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-14-sticky-nav-after-scroll",
+      "pass": true,
+      "detail": "{'x': 0, 'y': 0, 'width': 1920, 'height': 115.046875}",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-15-keyboard-focus-visible",
+      "pass": true,
+      "detail": "{'tag': 'A', 'cls': 'nav-link', 'page': 'v2_timeline', 'outlineStyle': 'solid', 'outlineWidth': '3px', 'outlineColor': 'rgb(73, 80, 87)'}",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-16-keyboard-activation",
+      "pass": true,
+      "detail": "v2_timeline",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-17-experiment-switch",
+      "pass": true,
+      "detail": "Original C -> Fixed R",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-18-v2-scheme-period",
+      "pass": true,
+      "detail": "{'c_active': True, 'a_active': True, 'new': '当前区间：新时间段 2026-07-30 ~ 2026-11-19 · 数据截止 2026-11-19 · 意见存储键 goldone_feedback', 'full': '当前区间：连续全窗口 2024-09-02 ~ 2026-11-19 · 数据截止 2026-11-19 · 意见存储键 goldone_feedback'}",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-19-v1-time-range",
+      "pass": true,
+      "detail": "{'full': 460, 'old280': 280, 'new90': 90}",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-20-v1-trade-filter-sort",
+      "pass": true,
+      "detail": "{'before': 50, 'before_total': 2239, 'after_total': 1012, 'filtered': 50, 'vals1': [33021.49, 17889.53, 17801.4, 13722.14], 'desc': True, 'vals2': [-33598.58, -32196.47, -26683.07, -26335.66], 'asc': True, 'restored': 50, 'restored_total': 7391}",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1920-21-v2-trade-filter-sort",
+      "pass": true,
+      "detail": "{'symbol': '301116.SZ', 'rows': 3, 'vals': [35862.88, 20507.89, -25602.64], 'desc': True}",
+      "width": 1920,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-01-load",
+      "pass": true,
+      "detail": "app ready",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-02-console-errors",
+      "pass": true,
+      "detail": "{'console': [], 'pageerror': []}",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-03-request-failures",
+      "pass": true,
+      "detail": "{'failed': [], 'bad_status': []}",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-04-no-external-requests",
+      "pass": true,
+      "detail": "[]",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-05-no-page-horizontal-overflow",
+      "pass": true,
+      "detail": "{'docScrollWidth': 1440, 'docClientWidth': 1440, 'bodyScrollWidth': 1440, 'viewport': 1440}",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-06-title-and-nav-separate-rows",
+      "pass": true,
+      "detail": "{'navTop': 60, 'topRowBottom': 50, 'headerTop': 0, 'headerHeight': 154.09375}",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-07-title-not-occluded",
+      "pass": true,
+      "detail": "{'left': 24, 'right': 187.25, 'top': 16, 'bottom': 44, 'width': 163.25, 'height': 28}",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-08-sticky-header",
+      "pass": true,
+      "detail": "sticky",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-nav-overview",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-nav-nav",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-nav-comparison",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-nav-segments",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-nav-trades",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-nav-riskfix",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-nav-concentration",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-nav-cost",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-nav-behaviour",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-nav-quality",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-nav-v2",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-nav-v2_overview",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-nav-v2_timeline",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-nav-v2_why",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-nav-v2_trades",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-nav-history",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-nav-feedback",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-09-leftmost-visible",
+      "pass": true,
+      "detail": "{'left': 24, 'right': 79.8125, 'top': 69, 'bottom': 104.046875, 'cx': 51.90625, 'cy': 86.5234375, 'inViewport': True, 'inNavBox': True, 'hitPage': 'overview', 'navScrollLeft': 0, 'navScrollMax': 0, 'navClientWidth': 1392, 'navScrollWidth': 1392}",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-10-leftmost-click",
+      "pass": true,
+      "detail": "overview clicked",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-11-rightmost-reachable",
+      "pass": true,
+      "detail": "{'left': 279.921875, 'right': 359.53125, 'top': 108.046875, 'bottom': 143.09375, 'cx': 319.7265625, 'cy': 125.5703125, 'inViewport': True, 'inNavBox': True, 'hitPage': 'feedback', 'navScrollLeft': 0, 'navScrollMax': 0, 'navClientWidth': 1392, 'navScrollWidth': 1392}",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-12-rightmost-click",
+      "pass": true,
+      "detail": "feedback clicked",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-13-v2-return-v1",
+      "pass": true,
+      "detail": "v2_overview -> overview",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-14-sticky-nav-after-scroll",
+      "pass": true,
+      "detail": "{'x': 0, 'y': 0, 'width': 1440, 'height': 154.09375}",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-15-keyboard-focus-visible",
+      "pass": true,
+      "detail": "{'tag': 'A', 'cls': 'nav-link', 'page': 'v2_timeline', 'outlineStyle': 'solid', 'outlineWidth': '3px', 'outlineColor': 'rgb(73, 80, 87)'}",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-16-keyboard-activation",
+      "pass": true,
+      "detail": "v2_timeline",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-17-experiment-switch",
+      "pass": true,
+      "detail": "Original C -> Fixed R",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-18-v2-scheme-period",
+      "pass": true,
+      "detail": "{'c_active': True, 'a_active': True, 'new': '当前区间：新时间段 2026-07-30 ~ 2026-11-19 · 数据截止 2026-11-19 · 意见存储键 goldone_feedback', 'full': '当前区间：连续全窗口 2024-09-02 ~ 2026-11-19 · 数据截止 2026-11-19 · 意见存储键 goldone_feedback'}",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-19-v1-time-range",
+      "pass": true,
+      "detail": "{'full': 460, 'old280': 280, 'new90': 90}",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-20-v1-trade-filter-sort",
+      "pass": true,
+      "detail": "{'before': 50, 'before_total': 2239, 'after_total': 1012, 'filtered': 50, 'vals1': [33021.49, 17889.53, 17801.4, 13722.14], 'desc': True, 'vals2': [-33598.58, -32196.47, -26683.07, -26335.66], 'asc': True, 'restored': 50, 'restored_total': 7391}",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1440-21-v2-trade-filter-sort",
+      "pass": true,
+      "detail": "{'symbol': '301116.SZ', 'rows': 3, 'vals': [35862.88, 20507.89, -25602.64], 'desc': True}",
+      "width": 1440,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-01-load",
+      "pass": true,
+      "detail": "app ready",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-02-console-errors",
+      "pass": true,
+      "detail": "{'console': [], 'pageerror': []}",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-03-request-failures",
+      "pass": true,
+      "detail": "{'failed': [], 'bad_status': []}",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-04-no-external-requests",
+      "pass": true,
+      "detail": "[]",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-05-no-page-horizontal-overflow",
+      "pass": true,
+      "detail": "{'docScrollWidth': 1024, 'docClientWidth': 1024, 'bodyScrollWidth': 1024, 'viewport': 1024}",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-06-title-and-nav-separate-rows",
+      "pass": true,
+      "detail": "{'navTop': 62, 'topRowBottom': 52, 'headerTop': 0, 'headerHeight': 158.09375}",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-07-title-not-occluded",
+      "pass": true,
+      "detail": "{'left': 16, 'right': 179.25, 'top': 18, 'bottom': 46, 'width': 163.25, 'height': 28}",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-08-sticky-header",
+      "pass": true,
+      "detail": "sticky",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-nav-overview",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-nav-nav",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-nav-comparison",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-nav-segments",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-nav-trades",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-nav-riskfix",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-nav-concentration",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-nav-cost",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-nav-behaviour",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-nav-quality",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-nav-v2",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-nav-v2_overview",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-nav-v2_timeline",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-nav-v2_why",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-nav-v2_trades",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-nav-history",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-nav-feedback",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=0",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-09-leftmost-visible",
+      "pass": true,
+      "detail": "{'left': 16, 'right': 71.8125, 'top': 71, 'bottom': 106.046875, 'cx': 43.90625, 'cy': 88.5234375, 'inViewport': True, 'inNavBox': True, 'hitPage': 'overview', 'navScrollLeft': 0, 'navScrollMax': 0, 'navClientWidth': 992, 'navScrollWidth': 992}",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-10-leftmost-click",
+      "pass": true,
+      "detail": "overview clicked",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-11-rightmost-reachable",
+      "pass": true,
+      "detail": "{'left': 614.46875, 'right': 694.078125, 'top': 110.046875, 'bottom': 145.09375, 'cx': 654.2734375, 'cy': 127.5703125, 'inViewport': True, 'inNavBox': True, 'hitPage': 'feedback', 'navScrollLeft': 0, 'navScrollMax': 0, 'navClientWidth': 992, 'navScrollWidth': 992}",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-12-rightmost-click",
+      "pass": true,
+      "detail": "feedback clicked",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-13-v2-return-v1",
+      "pass": true,
+      "detail": "v2_overview -> overview",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-14-sticky-nav-after-scroll",
+      "pass": true,
+      "detail": "{'x': 0, 'y': 0, 'width': 1024, 'height': 158.09375}",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-15-keyboard-focus-visible",
+      "pass": true,
+      "detail": "{'tag': 'A', 'cls': 'nav-link', 'page': 'v2_timeline', 'outlineStyle': 'solid', 'outlineWidth': '3px', 'outlineColor': 'rgb(73, 80, 87)'}",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-16-keyboard-activation",
+      "pass": true,
+      "detail": "v2_timeline",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-17-experiment-switch",
+      "pass": true,
+      "detail": "Original C -> Fixed R",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-18-v2-scheme-period",
+      "pass": true,
+      "detail": "{'c_active': True, 'a_active': True, 'new': '当前区间：新时间段 2026-07-30 ~ 2026-11-19 · 数据截止 2026-11-19 · 意见存储键 goldone_feedback', 'full': '当前区间：连续全窗口 2024-09-02 ~ 2026-11-19 · 数据截止 2026-11-19 · 意见存储键 goldone_feedback'}",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-19-v1-time-range",
+      "pass": true,
+      "detail": "{'full': 460, 'old280': 280, 'new90': 90}",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-20-v1-trade-filter-sort",
+      "pass": true,
+      "detail": "{'before': 50, 'before_total': 2239, 'after_total': 1012, 'filtered': 50, 'vals1': [33021.49, 17889.53, 17801.4, 13722.14], 'desc': True, 'vals2': [-33598.58, -32196.47, -26683.07, -26335.66], 'asc': True, 'restored': 50, 'restored_total': 7391}",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-1024-21-v2-trade-filter-sort",
+      "pass": true,
+      "detail": "{'symbol': '301116.SZ', 'rows': 3, 'vals': [35862.88, 20507.89, -25602.64], 'desc': True}",
+      "width": 1024,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-01-load",
+      "pass": true,
+      "detail": "app ready",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-02-console-errors",
+      "pass": true,
+      "detail": "{'console': [], 'pageerror': []}",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-03-request-failures",
+      "pass": true,
+      "detail": "{'failed': [], 'bad_status': []}",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-04-no-external-requests",
+      "pass": true,
+      "detail": "[]",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-05-no-page-horizontal-overflow",
+      "pass": true,
+      "detail": "{'docScrollWidth': 390, 'docClientWidth': 390, 'bodyScrollWidth': 390, 'viewport': 390}",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-06-title-and-nav-separate-rows",
+      "pass": true,
+      "detail": "{'navTop': 101, 'topRowBottom': 93, 'headerTop': 0, 'headerHeight': 156.046875}",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-07-title-not-occluded",
+      "pass": true,
+      "detail": "{'left': 12, 'right': 144.3125, 'top': 18.796875, 'bottom': 41.1875, 'width': 132.3125, 'height': 22.390625}",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-08-sticky-header",
+      "pass": true,
+      "detail": "sticky",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-nav-overview",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=1271",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-nav-nav",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=1271",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-nav-comparison",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=1271",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-nav-segments",
+      "pass": true,
+      "detail": " active=True scrollLeft=0 scrollMax=1271",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-nav-trades",
+      "pass": true,
+      "detail": " active=True scrollLeft=12 scrollMax=1271",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-nav-riskfix",
+      "pass": true,
+      "detail": " active=True scrollLeft=251 scrollMax=1271",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-nav-concentration",
+      "pass": true,
+      "detail": " active=True scrollLeft=251 scrollMax=1271",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-nav-cost",
+      "pass": true,
+      "detail": " active=True scrollLeft=299 scrollMax=1271",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-nav-behaviour",
+      "pass": true,
+      "detail": " active=True scrollLeft=538 scrollMax=1271",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-nav-quality",
+      "pass": true,
+      "detail": " active=True scrollLeft=538 scrollMax=1271",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-nav-v2",
+      "pass": true,
+      "detail": " active=True scrollLeft=589 scrollMax=1271",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-nav-v2_overview",
+      "pass": true,
+      "detail": " active=True scrollLeft=892 scrollMax=1271",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-nav-v2_timeline",
+      "pass": true,
+      "detail": " active=True scrollLeft=892 scrollMax=1271",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-nav-v2_why",
+      "pass": true,
+      "detail": " active=True scrollLeft=932 scrollMax=1271",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-nav-v2_trades",
+      "pass": true,
+      "detail": " active=True scrollLeft=1166 scrollMax=1271",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-nav-history",
+      "pass": true,
+      "detail": " active=True scrollLeft=1188 scrollMax=1271",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-nav-feedback",
+      "pass": true,
+      "detail": " active=True scrollLeft=1271 scrollMax=1271",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-09-leftmost-visible",
+      "pass": true,
+      "detail": "{'left': 12, 'right': 67.8125, 'top': 110, 'bottom': 145.046875, 'cx': 39.90625, 'cy': 127.5234375, 'inViewport': True, 'inNavBox': True, 'hitPage': 'overview', 'navScrollLeft': 0, 'navScrollMax': 1271, 'navClientWidth': 366, 'navScrollWidth': 1637}",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-10-leftmost-click",
+      "pass": true,
+      "detail": "overview clicked",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-11-rightmost-reachable",
+      "pass": true,
+      "detail": "{'left': 298.515625, 'right': 378.125, 'top': 110, 'bottom': 145.046875, 'cx': 338.3203125, 'cy': 127.5234375, 'inViewport': True, 'inNavBox': True, 'hitPage': 'feedback', 'navScrollLeft': 1271, 'navScrollMax': 1271, 'navClientWidth': 366, 'navScrollWidth': 1637}",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-12-rightmost-click",
+      "pass": true,
+      "detail": "feedback clicked",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-13-v2-return-v1",
+      "pass": true,
+      "detail": "v2_overview -> overview",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-14-sticky-nav-after-scroll",
+      "pass": true,
+      "detail": "{'x': 0, 'y': 0, 'width': 390, 'height': 156.046875}",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-15-keyboard-focus-visible",
+      "pass": true,
+      "detail": "{'tag': 'A', 'cls': 'nav-link', 'page': 'v2_timeline', 'outlineStyle': 'solid', 'outlineWidth': '3px', 'outlineColor': 'rgb(73, 80, 87)'}",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-16-keyboard-activation",
+      "pass": true,
+      "detail": "v2_timeline",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-17-experiment-switch",
+      "pass": true,
+      "detail": "Original C -> Fixed R",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-18-v2-scheme-period",
+      "pass": true,
+      "detail": "{'c_active': True, 'a_active': True, 'new': '当前区间：新时间段 2026-07-30 ~ 2026-11-19 · 数据截止 2026-11-19 · 意见存储键 goldone_feedback', 'full': '当前区间：连续全窗口 2024-09-02 ~ 2026-11-19 · 数据截止 2026-11-19 · 意见存储键 goldone_feedback'}",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-19-v1-time-range",
+      "pass": true,
+      "detail": "{'full': 460, 'old280': 280, 'new90': 90}",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-20-v1-trade-filter-sort",
+      "pass": true,
+      "detail": "{'before': 50, 'before_total': 2239, 'after_total': 1012, 'filtered': 50, 'vals1': [33021.49, 17889.53, 17801.4, 13722.14], 'desc': True, 'vals2': [-33598.58, -32196.47, -26683.07, -26335.66], 'asc': True, 'restored': 50, 'restored_total': 7391}",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-21-v2-trade-filter-sort",
+      "pass": true,
+      "detail": "{'symbol': '301116.SZ', 'rows': 3, 'vals': [35862.88, 20507.89, -25602.64], 'desc': True}",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "PUBLIC-390-22-mobile-layout",
+      "pass": true,
+      "detail": "{'doc': 390, 'client': 390, 'headerRight': 378, 'pickerRight': 378, 'navWrap': 'nowrap', 'navOverflow': 'auto'}",
+      "width": 390,
+      "mode": "public"
+    },
+    {
+      "id": "FEEDBACK-01-isolated-add-persist",
+      "pass": true,
+      "detail": "{'listed': True, 'persisted': True, 'stored': {'keyPresent': True, 'count': 2, 'titles': ['P21R1 isolated feedback 1795157252', 'P21R1 SENTINEL - KEEP ME'], 'sentinelTitles': ['P21R1 SENTINEL - KEEP ME'], 'sentinelObservation': 'sentinel observation', 'storageKeys': ['goldone_theme', 'goldone_feedback']}}",
+      "width": 1440,
+      "mode": "feedback"
+    },
+    {
+      "id": "FEEDBACK-02-existing-record-untouched",
+      "pass": true,
+      "detail": "{'sentinel_ok': True, 'sentinel': ['P21R1 SENTINEL - KEEP ME']}",
+      "width": 1440,
+      "mode": "feedback"
+    },
+    {
+      "id": "FEEDBACK-03-no-console-errors",
+      "pass": true,
+      "detail": "[]",
+      "width": 1440,
+      "mode": "feedback"
+    }
+  ],
+  "view_records": [
+    {
+      "width": 1920,
+      "console_errors": [],
+      "page_errors": [],
+      "failed_requests": [],
+      "bad_responses": [],
+      "request_count": 32
+    },
+    {
+      "width": 1440,
+      "console_errors": [],
+      "page_errors": [],
+      "failed_requests": [],
+      "bad_responses": [],
+      "request_count": 32
+    },
+    {
+      "width": 1024,
+      "console_errors": [],
+      "page_errors": [],
+      "failed_requests": [],
+      "bad_responses": [],
+      "request_count": 32
+    },
+    {
+      "width": 390,
+      "console_errors": [],
+      "page_errors": [],
+      "failed_requests": [],
+      "bad_responses": [],
+      "request_count": 32
+    }
+  ],
+  "input_method": "raw page.mouse.down/up for desktop; page.touchscreen.tap for 390; Element.click() never used"
+}

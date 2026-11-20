@@ -1,0 +1,771 @@
+{
+  "task": "GO-Strategy-V2-P21-R1",
+  "mode": "pre_fix_baseline",
+  "styles_sha256": "62abb62164faca45b256d9c8a104b64f7c007c9c7d64e55605a0188e5d56a861",
+  "viewports": [
+    {
+      "width": 1920,
+      "height": 1080,
+      "geometry": {
+        "navClient": 753,
+        "navScroll": 1195,
+        "scrollLeft": 0,
+        "navLeft": 976.078125,
+        "navRight": 1729,
+        "firstLeft": 533.984375,
+        "lastRight": 2171.109375,
+        "headerHeight": 64,
+        "docScroll": 1920,
+        "client": 1920
+      }
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "geometry": {
+        "navClient": 513,
+        "navScroll": 1075,
+        "scrollLeft": 0,
+        "navLeft": 736.078125,
+        "navRight": 1249,
+        "firstLeft": 173.984375,
+        "lastRight": 1811.109375,
+        "headerHeight": 64,
+        "docScroll": 1440,
+        "client": 1440
+      }
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "geometry": {
+        "navClient": 313,
+        "navScroll": 1637,
+        "scrollLeft": 0,
+        "navLeft": 695.078125,
+        "navRight": 1008,
+        "firstLeft": 695.078125,
+        "lastRight": 2332.203125,
+        "headerHeight": 64,
+        "docScroll": 1024,
+        "client": 1024
+      }
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "geometry": {
+        "navClient": 366,
+        "navScroll": 1637,
+        "scrollLeft": 0,
+        "navLeft": 12,
+        "navRight": 378,
+        "firstLeft": 12,
+        "lastRight": 1649.125,
+        "headerHeight": 176.046875,
+        "docScroll": 390,
+        "client": 390
+      }
+    }
+  ],
+  "clicks": [
+    {
+      "width": 1920,
+      "page": "overview",
+      "center": [
+        561.9,
+        31.5
+      ],
+      "hit": "DIV",
+      "ok": false,
+      "reason": "not reachable/topmost without force"
+    },
+    {
+      "width": 1920,
+      "page": "nav",
+      "center": [
+        639.5,
+        31.5
+      ],
+      "hit": "DIV",
+      "ok": false,
+      "reason": "not reachable/topmost without force"
+    },
+    {
+      "width": 1920,
+      "page": "comparison",
+      "center": [
+        729.1,
+        31.5
+      ],
+      "hit": "DIV",
+      "ok": false,
+      "reason": "not reachable/topmost without force"
+    },
+    {
+      "width": 1920,
+      "page": "segments",
+      "center": [
+        812.7,
+        31.5
+      ],
+      "hit": "LABEL",
+      "ok": false,
+      "reason": "not reachable/topmost without force"
+    },
+    {
+      "width": 1920,
+      "page": "trades",
+      "center": [
+        884.4,
+        31.5
+      ],
+      "hit": "SELECT",
+      "ok": false,
+      "reason": "not reachable/topmost without force"
+    },
+    {
+      "width": 1920,
+      "page": "riskfix",
+      "center": [
+        968.0,
+        31.5
+      ],
+      "hit": "HEADER",
+      "ok": false,
+      "reason": "not reachable/topmost without force"
+    },
+    {
+      "width": 1920,
+      "page": "concentration",
+      "center": [
+        1069.5,
+        31.5
+      ],
+      "hit": "concentration",
+      "ok": true
+    },
+    {
+      "width": 1920,
+      "page": "cost",
+      "center": [
+        1159.0,
+        31.5
+      ],
+      "hit": "cost",
+      "ok": true
+    },
+    {
+      "width": 1920,
+      "page": "behaviour",
+      "center": [
+        1254.5,
+        31.5
+      ],
+      "hit": "behaviour",
+      "ok": true
+    },
+    {
+      "width": 1920,
+      "page": "quality",
+      "center": [
+        1350.1,
+        31.5
+      ],
+      "hit": "quality",
+      "ok": true
+    },
+    {
+      "width": 1920,
+      "page": "v2",
+      "center": [
+        1441.4,
+        31.5
+      ],
+      "hit": "v2",
+      "ok": true
+    },
+    {
+      "width": 1920,
+      "page": "v2_overview",
+      "center": [
+        1609.5,
+        31.5
+      ],
+      "hit": "v2_overview",
+      "ok": true
+    },
+    {
+      "width": 1920,
+      "page": "v2_timeline",
+      "center": [
+        1681.7,
+        31.5
+      ],
+      "hit": "v2_timeline",
+      "ok": true
+    },
+    {
+      "width": 1920,
+      "page": "v2_why",
+      "center": [
+        1352.9,
+        31.5
+      ],
+      "hit": "v2_why",
+      "ok": true
+    },
+    {
+      "width": 1920,
+      "page": "v2_trades",
+      "center": [
+        1446.2,
+        31.5
+      ],
+      "hit": "v2_trades",
+      "ok": true
+    },
+    {
+      "width": 1920,
+      "page": "history",
+      "center": [
+        1610.7,
+        31.5
+      ],
+      "hit": "history",
+      "ok": true
+    },
+    {
+      "width": 1920,
+      "page": "feedback",
+      "center": [
+        1689.3,
+        31.5
+      ],
+      "hit": "feedback",
+      "ok": true
+    },
+    {
+      "width": 1440,
+      "page": "overview",
+      "center": [
+        201.9,
+        31.5
+      ],
+      "hit": "DIV",
+      "ok": false,
+      "reason": "not reachable/topmost without force"
+    },
+    {
+      "width": 1440,
+      "page": "nav",
+      "center": [
+        279.5,
+        31.5
+      ],
+      "hit": "SPAN",
+      "ok": false,
+      "reason": "not reachable/topmost without force"
+    },
+    {
+      "width": 1440,
+      "page": "comparison",
+      "center": [
+        369.1,
+        31.5
+      ],
+      "hit": "SPAN",
+      "ok": false,
+      "reason": "not reachable/topmost without force"
+    },
+    {
+      "width": 1440,
+      "page": "segments",
+      "center": [
+        452.7,
+        31.5
+      ],
+      "hit": "SPAN",
+      "ok": false,
+      "reason": "not reachable/topmost without force"
+    },
+    {
+      "width": 1440,
+      "page": "trades",
+      "center": [
+        524.4,
+        31.5
+      ],
+      "hit": "DIV",
+      "ok": false,
+      "reason": "not reachable/topmost without force"
+    },
+    {
+      "width": 1440,
+      "page": "riskfix",
+      "center": [
+        608.0,
+        31.5
+      ],
+      "hit": "DIV",
+      "ok": false,
+      "reason": "not reachable/topmost without force"
+    },
+    {
+      "width": 1440,
+      "page": "concentration",
+      "center": [
+        709.5,
+        31.5
+      ],
+      "hit": "SELECT",
+      "ok": false,
+      "reason": "not reachable/topmost without force"
+    },
+    {
+      "width": 1440,
+      "page": "cost",
+      "center": [
+        799.0,
+        31.5
+      ],
+      "hit": "cost",
+      "ok": true
+    },
+    {
+      "width": 1440,
+      "page": "behaviour",
+      "center": [
+        894.5,
+        31.5
+      ],
+      "hit": "behaviour",
+      "ok": true
+    },
+    {
+      "width": 1440,
+      "page": "quality",
+      "center": [
+        990.1,
+        31.5
+      ],
+      "hit": "quality",
+      "ok": true
+    },
+    {
+      "width": 1440,
+      "page": "v2",
+      "center": [
+        1081.4,
+        31.5
+      ],
+      "hit": "v2",
+      "ok": true
+    },
+    {
+      "width": 1440,
+      "page": "v2_overview",
+      "center": [
+        1213.5,
+        31.5
+      ],
+      "hit": "v2_overview",
+      "ok": true
+    },
+    {
+      "width": 1440,
+      "page": "v2_timeline",
+      "center": [
+        992.7,
+        31.5
+      ],
+      "hit": "v2_timeline",
+      "ok": true
+    },
+    {
+      "width": 1440,
+      "page": "v2_why",
+      "center": [
+        1085.9,
+        31.5
+      ],
+      "hit": "v2_why",
+      "ok": true
+    },
+    {
+      "width": 1440,
+      "page": "v2_trades",
+      "center": [
+        1179.2,
+        31.5
+      ],
+      "hit": "v2_trades",
+      "ok": true
+    },
+    {
+      "width": 1440,
+      "page": "history",
+      "center": [
+        1125.7,
+        31.5
+      ],
+      "hit": "history",
+      "ok": true
+    },
+    {
+      "width": 1440,
+      "page": "feedback",
+      "center": [
+        1209.3,
+        31.5
+      ],
+      "hit": "feedback",
+      "ok": true
+    },
+    {
+      "width": 1024,
+      "page": "overview",
+      "center": [
+        723.0,
+        56.8
+      ],
+      "hit": "overview",
+      "ok": true
+    },
+    {
+      "width": 1024,
+      "page": "nav",
+      "center": [
+        800.6,
+        56.8
+      ],
+      "hit": "nav",
+      "ok": true
+    },
+    {
+      "width": 1024,
+      "page": "comparison",
+      "center": [
+        890.2,
+        56.8
+      ],
+      "hit": "comparison",
+      "ok": true
+    },
+    {
+      "width": 1024,
+      "page": "segments",
+      "center": [
+        967.8,
+        56.8
+      ],
+      "hit": "segments",
+      "ok": true
+    },
+    {
+      "width": 1024,
+      "page": "trades",
+      "center": [
+        851.5,
+        56.8
+      ],
+      "hit": "trades",
+      "ok": true
+    },
+    {
+      "width": 1024,
+      "page": "riskfix",
+      "center": [
+        935.1,
+        56.8
+      ],
+      "hit": "riskfix",
+      "ok": true
+    },
+    {
+      "width": 1024,
+      "page": "concentration",
+      "center": [
+        962.6,
+        56.8
+      ],
+      "hit": "concentration",
+      "ok": true
+    },
+    {
+      "width": 1024,
+      "page": "cost",
+      "center": [
+        851.1,
+        56.8
+      ],
+      "hit": "cost",
+      "ok": true
+    },
+    {
+      "width": 1024,
+      "page": "behaviour",
+      "center": [
+        946.6,
+        56.8
+      ],
+      "hit": "behaviour",
+      "ok": true
+    },
+    {
+      "width": 1024,
+      "page": "quality",
+      "center": [
+        968.1,
+        56.8
+      ],
+      "hit": "quality",
+      "ok": true
+    },
+    {
+      "width": 1024,
+      "page": "v2",
+      "center": [
+        851.5,
+        56.8
+      ],
+      "hit": "v2",
+      "ok": true
+    },
+    {
+      "width": 1024,
+      "page": "v2_overview",
+      "center": [
+        972.6,
+        56.8
+      ],
+      "hit": "v2_overview",
+      "ok": true
+    },
+    {
+      "width": 1024,
+      "page": "v2_timeline",
+      "center": [
+        851.8,
+        56.8
+      ],
+      "hit": "v2_timeline",
+      "ok": true
+    },
+    {
+      "width": 1024,
+      "page": "v2_why",
+      "center": [
+        945.0,
+        56.8
+      ],
+      "hit": "v2_why",
+      "ok": true
+    },
+    {
+      "width": 1024,
+      "page": "v2_trades",
+      "center": [
+        960.3,
+        56.8
+      ],
+      "hit": "v2_trades",
+      "ok": true
+    },
+    {
+      "width": 1024,
+      "page": "history",
+      "center": [
+        884.8,
+        56.8
+      ],
+      "hit": "history",
+      "ok": true
+    },
+    {
+      "width": 1024,
+      "page": "feedback",
+      "center": [
+        968.4,
+        56.8
+      ],
+      "hit": "feedback",
+      "ok": true
+    },
+    {
+      "width": 390,
+      "page": "overview",
+      "center": [
+        39.9,
+        143.5
+      ],
+      "hit": "overview",
+      "ok": true
+    },
+    {
+      "width": 390,
+      "page": "nav",
+      "center": [
+        117.6,
+        143.5
+      ],
+      "hit": "nav",
+      "ok": true
+    },
+    {
+      "width": 390,
+      "page": "comparison",
+      "center": [
+        207.1,
+        143.5
+      ],
+      "hit": "comparison",
+      "ok": true
+    },
+    {
+      "width": 390,
+      "page": "segments",
+      "center": [
+        290.7,
+        143.5
+      ],
+      "hit": "segments",
+      "ok": true
+    },
+    {
+      "width": 390,
+      "page": "trades",
+      "center": [
+        350.4,
+        143.5
+      ],
+      "hit": "trades",
+      "ok": true
+    },
+    {
+      "width": 390,
+      "page": "riskfix",
+      "center": [
+        195.0,
+        143.5
+      ],
+      "hit": "riskfix",
+      "ok": true
+    },
+    {
+      "width": 390,
+      "page": "concentration",
+      "center": [
+        296.5,
+        143.5
+      ],
+      "hit": "concentration",
+      "ok": true
+    },
+    {
+      "width": 390,
+      "page": "cost",
+      "center": [
+        338.1,
+        143.5
+      ],
+      "hit": "cost",
+      "ok": true
+    },
+    {
+      "width": 390,
+      "page": "behaviour",
+      "center": [
+        194.6,
+        143.5
+      ],
+      "hit": "behaviour",
+      "ok": true
+    },
+    {
+      "width": 390,
+      "page": "quality",
+      "center": [
+        290.1,
+        143.5
+      ],
+      "hit": "quality",
+      "ok": true
+    },
+    {
+      "width": 390,
+      "page": "v2",
+      "center": [
+        330.5,
+        143.5
+      ],
+      "hit": "v2",
+      "ok": true
+    },
+    {
+      "width": 390,
+      "page": "v2_overview",
+      "center": [
+        195.5,
+        143.5
+      ],
+      "hit": "v2_overview",
+      "ok": true
+    },
+    {
+      "width": 390,
+      "page": "v2_timeline",
+      "center": [
+        282.7,
+        143.5
+      ],
+      "hit": "v2_timeline",
+      "ok": true
+    },
+    {
+      "width": 390,
+      "page": "v2_why",
+      "center": [
+        336.0,
+        143.5
+      ],
+      "hit": "v2_why",
+      "ok": true
+    },
+    {
+      "width": 390,
+      "page": "v2_trades",
+      "center": [
+        195.2,
+        143.5
+      ],
+      "hit": "v2_trades",
+      "ok": true
+    },
+    {
+      "width": 390,
+      "page": "history",
+      "center": [
+        337.7,
+        143.5
+      ],
+      "hit": "history",
+      "ok": true
+    },
+    {
+      "width": 390,
+      "page": "feedback",
+      "center": [
+        338.3,
+        143.5
+      ],
+      "hit": "feedback",
+      "ok": true
+    }
+  ],
+  "summary": {
+    "total": 68,
+    "passed": 55,
+    "failed": 13
+  }
+}
