@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="GoldOne实验审阅台 - 四组实验展示与意见收集（schema 3.0.0）">
-    <title>GoldOne 实验审阅台</title>
+    <meta name="description" content="GoldOne实验审阅台 - 保留V1四组实验，并新增V2冻结验证独立入口（P12-A_fixed / P12-C_fixed）">
+    <title>GoldOne 实验审阅台 · V2 冻结验证</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23c9a227'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -15,6 +15,7 @@
             <div class="header-left">
                 <h1 class="site-title">GoldOne 实验审阅台</h1>
                 <span class="version-badge" id="versionBadge">加载中...</span>
+                <span class="version-badge v2-badge" id="v2Badge">V2 冻结验证</span>
             </div>
             <div class="experiment-picker" id="experimentPicker">
                 <label for="experimentSelect">当前实验</label>
@@ -32,6 +33,12 @@
                 <a href="#behaviour" class="nav-link" data-page="behaviour">频率与持有期</a>
                 <a href="#quality" class="nav-link" data-page="quality">数据质量</a>
                 <a href="#v2" class="nav-link" data-page="v2">V2实施状态</a>
+                <span class="nav-group-label">V2 冻结验证</span>
+                <a href="#v2_overview" class="nav-link" data-page="v2_overview">V2总览</a>
+                <a href="#v2_timeline" class="nav-link" data-page="v2_timeline">V2持仓现金</a>
+                <a href="#v2_why" class="nav-link" data-page="v2_why">V2未买入</a>
+                <a href="#v2_trades" class="nav-link" data-page="v2_trades">V2交易贡献</a>
+                <span class="nav-group-label">历史与意见</span>
                 <a href="#history" class="nav-link" data-page="history">版本历史</a>
                 <a href="#feedback" class="nav-link" data-page="feedback">修正意见</a>
             </nav>
@@ -74,7 +81,7 @@
         <!-- Footer -->
         <footer class="footer">
             <div class="footer-left">
-                <span>GoldOne 实验审阅台 v3.1.0 · schema 3.0.0</span>
+                <span>GoldOne 实验审阅台 v3.2.0 · V2 冻结验证 · V1 四组实验保留</span>
                 <span class="data-as-of" id="dataAsOf"></span>
             </div>
             <div class="footer-right">
@@ -133,7 +140,9 @@
                     <div class="form-group">
                         <label for="feedbackVersion">对应实验版本 <span class="required">*</span></label>
                         <select id="feedbackVersion" name="version" required>
-                            <option value="RiskFixV1">RiskFixV1 (当前正式基线)</option>
+                            <option value="P12-A_fixed">P12-A_fixed (V2 主方案)</option>
+                            <option value="P12-C_fixed">P12-C_fixed (V2 对照)</option>
+                            <option value="RiskFixV1">RiskFixV1 (V1 历史基线)</option>
                             <option value="D2C">D2C (上一正式基线)</option>
                             <option value="D2B">D2B (历史正式基线)</option>
                             <option value="D2A-R1">D2A-R1 (历史正式基线)</option>
@@ -150,6 +159,8 @@
                             <option value="original_R_baseline">Original R</option>
                             <option value="fixed_C_baseline">Fixed C</option>
                             <option value="fixed_R_baseline">Fixed R</option>
+                            <option value="P12-A_fixed">P12-A_fixed (V2 主方案)</option>
+                            <option value="P12-C_fixed">P12-C_fixed (V2 对照)</option>
                         </select>
                     </div>
 
