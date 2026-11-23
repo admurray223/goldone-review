@@ -1,0 +1,107 @@
+{
+  "total": 20,
+  "passed": 20,
+  "failed": 0,
+  "results": [
+    {
+      "id": "overview_stats_buy",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "overview_stats_total",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "overview_end_holdings",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "overview_end_date",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "overview_scoring_audit",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "overview_scoring_conflict",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "overview_full_end0",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "dev_end_holdings_1",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "dev_holdings_detail_605138",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "trades_stats_total",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "trades_cycle_table",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "trades_notes_cards",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "trades_notes_shenghui",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "trades_notes_tonghao",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "trades_notes_not_reconstruct",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "trades_scoring_audit",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "dev_open_not_sold",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "color_positive_red",
+      "ok": true,
+      "detail": "rgb(217, 54, 62)"
+    },
+    {
+      "id": "color_negative_green",
+      "ok": true,
+      "detail": "rgb(26, 158, 95)"
+    },
+    {
+      "id": "console_errors",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

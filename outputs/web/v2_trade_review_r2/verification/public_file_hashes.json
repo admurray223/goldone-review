@@ -1,0 +1,258 @@
+{
+  "total": 36,
+  "matched": 36,
+  "results": [
+    {
+      "file": ".nojekyll",
+      "local": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "remote": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "app.js",
+      "local": "ec9d64ce73379eee238e4639c7721317fee34896942ae84a88fb2f3e803fe92a",
+      "remote": "ec9d64ce73379eee238e4639c7721317fee34896942ae84a88fb2f3e803fe92a",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "chart.min.js",
+      "local": "d2af8974e95271638772e9e9524db5b9a6f58d6ec2d5d781400447b4a31c681e",
+      "remote": "d2af8974e95271638772e9e9524db5b9a6f58d6ec2d5d781400447b4a31c681e",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/SHA256SUMS.txt",
+      "local": "ff7ac1d5941ae005236fe6a3052dda9b2b11e4591a199d70d3c136de04cd21e8",
+      "remote": "ff7ac1d5941ae005236fe6a3052dda9b2b11e4591a199d70d3c136de04cd21e8",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/baseline_comparison.json",
+      "local": "287f3e83722984fadce5423b9214cdf3a0ec29c7ae1f848ed8bb87a8bdcc36b7",
+      "remote": "287f3e83722984fadce5423b9214cdf3a0ec29c7ae1f848ed8bb87a8bdcc36b7",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/concentration.json",
+      "local": "ed0dda98be6cf871d501eafce318d58f09a3d3dbc88a335c471a598daf20f0ea",
+      "remote": "ed0dda98be6cf871d501eafce318d58f09a3d3dbc88a335c471a598daf20f0ea",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/cost_attribution.json",
+      "local": "24cdc3c1288f18dc4da5c2902f40377174d90b607ae40a573501c4550150fda3",
+      "remote": "24cdc3c1288f18dc4da5c2902f40377174d90b607ae40a573501c4550150fda3",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/cost_sensitivity.json",
+      "local": "ec47e19a9974fabaf9aabe7c1c3d308742fe2b2cb100f6fd4689ff106633c7fc",
+      "remote": "ec47e19a9974fabaf9aabe7c1c3d308742fe2b2cb100f6fd4689ff106633c7fc",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/coverage.json",
+      "local": "5023322d32afe6d12d93e6322f6bff01b3fd7211a5a0c7f2aafa909fafeb9e20",
+      "remote": "5023322d32afe6d12d93e6322f6bff01b3fd7211a5a0c7f2aafa909fafeb9e20",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/d2b_status.json",
+      "local": "7222b18aaf284424c344584b8800e447c35e04e2f0ff560985169387f3a5ddad",
+      "remote": "7222b18aaf284424c344584b8800e447c35e04e2f0ff560985169387f3a5ddad",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/d2c_status.json",
+      "local": "af49e5edfc4205958ad2258da97f62ffb01c30142f18249cb9dcd84e224003a3",
+      "remote": "af49e5edfc4205958ad2258da97f62ffb01c30142f18249cb9dcd84e224003a3",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/data_quality.json",
+      "local": "4641c14f958fa3c7b9081a987d333a37c728f1c16c9f4e459c3516014b1dd223",
+      "remote": "4641c14f958fa3c7b9081a987d333a37c728f1c16c9f4e459c3516014b1dd223",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/drawdowns.json",
+      "local": "c74dba4fb1ca1cac2c1e99ea247aa5185e4aae7553dc8d95a111fab41d7132dd",
+      "remote": "c74dba4fb1ca1cac2c1e99ea247aa5185e4aae7553dc8d95a111fab41d7132dd",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/equity_curves.json",
+      "local": "fc1e09adaa2f03c51f745d145b1072f977a9d564cf2510aec818eb6a8d6f703a",
+      "remote": "fc1e09adaa2f03c51f745d145b1072f977a9d564cf2510aec818eb6a8d6f703a",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/experiments.json",
+      "local": "1b092b864c600edb1a9387ba99c6fbbfaa2543c330d9c8d9b3840e0a98e09f94",
+      "remote": "1b092b864c600edb1a9387ba99c6fbbfaa2543c330d9c8d9b3840e0a98e09f94",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/financial_availability.json",
+      "local": "9b913ba235be0dfef8cbcca54080e8f522b348d691fe3298941c4ee69a9915b6",
+      "remote": "9b913ba235be0dfef8cbcca54080e8f522b348d691fe3298941c4ee69a9915b6",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/holding_period.json",
+      "local": "1a1c4be55b7ae16bf904a83f8b4b9b6b75e8d66e540c617213e7eb41e760f274",
+      "remote": "1a1c4be55b7ae16bf904a83f8b4b9b6b75e8d66e540c617213e7eb41e760f274",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/index_data.json",
+      "local": "f623bb7a821b9bf4f78fac8905077a6418d39ce6fdcc70ac55821d9920497a87",
+      "remote": "f623bb7a821b9bf4f78fac8905077a6418d39ce6fdcc70ac55821d9920497a87",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/manifest.json",
+      "local": "0987ab2e11e01840db46c79ce536a1627646b845afb1eda35eddf4628ddc48ab",
+      "remote": "0987ab2e11e01840db46c79ce536a1627646b845afb1eda35eddf4628ddc48ab",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/reconciliation.json",
+      "local": "6a00696d420ac5bcf35cf77e9826302fff89753e51b8279c60bc2bfc315fac2c",
+      "remote": "6a00696d420ac5bcf35cf77e9826302fff89753e51b8279c60bc2bfc315fac2c",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/risk_events.json",
+      "local": "d3501bb14225b01740b2d485e8a2a19181173dd45207f1a8c2e03a1d48351bcb",
+      "remote": "d3501bb14225b01740b2d485e8a2a19181173dd45207f1a8c2e03a1d48351bcb",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/security_scan.json",
+      "local": "d5ea2b9bbe04078f5207feffac94032c8282168e5a1914f1048fbc99ee7e5296",
+      "remote": "d5ea2b9bbe04078f5207feffac94032c8282168e5a1914f1048fbc99ee7e5296",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/segment_labels.json",
+      "local": "9f79a5747c15cfb377706f753bcbd1387a786a9a6d811253fa4e421423f5957c",
+      "remote": "9f79a5747c15cfb377706f753bcbd1387a786a9a6d811253fa4e421423f5957c",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/segment_metrics.json",
+      "local": "4c6a63ecae75e8a2faade09b52782f23230570072eeba002db453c35e2699b67",
+      "remote": "4c6a63ecae75e8a2faade09b52782f23230570072eeba002db453c35e2699b67",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/sell_pnl.json",
+      "local": "96f8fdd402e112a08c1e3a3758de283dcfa9a3264e71d74b542486a3713f9977",
+      "remote": "96f8fdd402e112a08c1e3a3758de283dcfa9a3264e71d74b542486a3713f9977",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/sell_pnl_summaries.json",
+      "local": "5e9f028fd02f99c8e6662bdad3c9696d85df541ac98d1ad8f2b51cd34ca09a3e",
+      "remote": "5e9f028fd02f99c8e6662bdad3c9696d85df541ac98d1ad8f2b51cd34ca09a3e",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/trades.json",
+      "local": "defe79a0039d9ed4d06c2039d5d02708eab1a0c5fbf2d846dc542f48b87f58b6",
+      "remote": "defe79a0039d9ed4d06c2039d5d02708eab1a0c5fbf2d846dc542f48b87f58b6",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/trading_frequency.json",
+      "local": "9807706f7d58e54962ae5dcb598de9fc32e3ea6cc27b8d5f756e015fd66716bf",
+      "remote": "9807706f7d58e54962ae5dcb598de9fc32e3ea6cc27b8d5f756e015fd66716bf",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/universe_info.json",
+      "local": "b3deadcb47cd0a6a9114458884e1d894e1a0a22f864ce35850c282ec53e06f8c",
+      "remote": "b3deadcb47cd0a6a9114458884e1d894e1a0a22f864ce35850c282ec53e06f8c",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/v2_p2_case.json",
+      "local": "5ce711584c982573e7539048fe2ca5a869d0ea6d1d0845001779d0d5578ef4fb",
+      "remote": "5ce711584c982573e7539048fe2ca5a869d0ea6d1d0845001779d0d5578ef4fb",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/v2_p2_status.json",
+      "local": "a356a68be8aeeeceea6728bff6b3afe8b516eb3de1a747c488b98e118fa4aeaa",
+      "remote": "a356a68be8aeeeceea6728bff6b3afe8b516eb3de1a747c488b98e118fa4aeaa",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/v2_review.json",
+      "local": "be996e677f184122b9bfa9951eff450280f305e573ecbe0256449b1a4964cbae",
+      "remote": "be996e677f184122b9bfa9951eff450280f305e573ecbe0256449b1a4964cbae",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/v2_trade_notes.json",
+      "local": "9dff42c3ba4ee85315fc7f2bb6c268409b094725ba81df70a09a3202008545df",
+      "remote": "9dff42c3ba4ee85315fc7f2bb6c268409b094725ba81df70a09a3202008545df",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "data/version_history.json",
+      "local": "f7a9e2b2d266fbabdff8369cb5ac43dc2c6685e3c57b40dfa09f8fb1473a6c03",
+      "remote": "f7a9e2b2d266fbabdff8369cb5ac43dc2c6685e3c57b40dfa09f8fb1473a6c03",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "index.html",
+      "local": "46c97d844d5e7217ac68a0eb3d9b3c96ef9a05b93e30ae66e9b9da5f188ad3e7",
+      "remote": "46c97d844d5e7217ac68a0eb3d9b3c96ef9a05b93e30ae66e9b9da5f188ad3e7",
+      "match": true,
+      "error": null
+    },
+    {
+      "file": "styles.css",
+      "local": "76f507e42cc2dfc9cc6c66bbd1bc44014bdd6d5e5fa83a79676ee2b8f44495eb",
+      "remote": "76f507e42cc2dfc9cc6c66bbd1bc44014bdd6d5e5fa83a79676ee2b8f44495eb",
+      "match": true,
+      "error": null
+    }
+  ]
+}

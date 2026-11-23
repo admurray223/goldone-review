@@ -1,0 +1,227 @@
+{
+  "total": 44,
+  "passed": 44,
+  "failed": 0,
+  "results": [
+    {
+      "id": "layout_1920_no_overflow",
+      "ok": true,
+      "detail": "scrollWidth=1920 clientWidth=1920"
+    },
+    {
+      "id": "nav_1920_all_reachable",
+      "ok": true,
+      "detail": "17/17"
+    },
+    {
+      "id": "stats_1920_A_dev",
+      "ok": true,
+      "detail": "got buy=19 sell=18 total=37 end=1 exp=19/18/37/1"
+    },
+    {
+      "id": "stats_1920_A_new",
+      "ok": true,
+      "detail": "got buy=1 sell=2 total=3 end=0 exp=1/2/3/0"
+    },
+    {
+      "id": "stats_1920_A_full",
+      "ok": true,
+      "detail": "got buy=20 sell=20 total=40 end=0 exp=20/20/40/0"
+    },
+    {
+      "id": "stats_1920_C_full",
+      "ok": true,
+      "detail": "got buy=18 sell=18 total=36 end=0 exp=18/18/36/0"
+    },
+    {
+      "id": "stats_1920_C_dev",
+      "ok": true,
+      "detail": "got buy=17 sell=17 total=34 end=0 exp=17/17/34/0"
+    },
+    {
+      "id": "stats_1920_C_new",
+      "ok": true,
+      "detail": "got buy=1 sell=1 total=2 end=0 exp=1/1/2/0"
+    },
+    {
+      "id": "trades_1920_filter_symbol",
+      "ok": true,
+      "detail": "rows=1"
+    },
+    {
+      "id": "feedback_1920_isolation",
+      "ok": true,
+      "detail": "count=2 sentinel=True new=True"
+    },
+    {
+      "id": "console_1920_clean",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "layout_1440_no_overflow",
+      "ok": true,
+      "detail": "scrollWidth=1440 clientWidth=1440"
+    },
+    {
+      "id": "nav_1440_all_reachable",
+      "ok": true,
+      "detail": "17/17"
+    },
+    {
+      "id": "stats_1440_A_dev",
+      "ok": true,
+      "detail": "got buy=19 sell=18 total=37 end=1 exp=19/18/37/1"
+    },
+    {
+      "id": "stats_1440_A_new",
+      "ok": true,
+      "detail": "got buy=1 sell=2 total=3 end=0 exp=1/2/3/0"
+    },
+    {
+      "id": "stats_1440_A_full",
+      "ok": true,
+      "detail": "got buy=20 sell=20 total=40 end=0 exp=20/20/40/0"
+    },
+    {
+      "id": "stats_1440_C_full",
+      "ok": true,
+      "detail": "got buy=18 sell=18 total=36 end=0 exp=18/18/36/0"
+    },
+    {
+      "id": "stats_1440_C_dev",
+      "ok": true,
+      "detail": "got buy=17 sell=17 total=34 end=0 exp=17/17/34/0"
+    },
+    {
+      "id": "stats_1440_C_new",
+      "ok": true,
+      "detail": "got buy=1 sell=1 total=2 end=0 exp=1/1/2/0"
+    },
+    {
+      "id": "trades_1440_filter_symbol",
+      "ok": true,
+      "detail": "rows=1"
+    },
+    {
+      "id": "feedback_1440_isolation",
+      "ok": true,
+      "detail": "count=2 sentinel=True new=True"
+    },
+    {
+      "id": "console_1440_clean",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "layout_1024_no_overflow",
+      "ok": true,
+      "detail": "scrollWidth=1024 clientWidth=1024"
+    },
+    {
+      "id": "nav_1024_all_reachable",
+      "ok": true,
+      "detail": "17/17"
+    },
+    {
+      "id": "stats_1024_A_dev",
+      "ok": true,
+      "detail": "got buy=19 sell=18 total=37 end=1 exp=19/18/37/1"
+    },
+    {
+      "id": "stats_1024_A_new",
+      "ok": true,
+      "detail": "got buy=1 sell=2 total=3 end=0 exp=1/2/3/0"
+    },
+    {
+      "id": "stats_1024_A_full",
+      "ok": true,
+      "detail": "got buy=20 sell=20 total=40 end=0 exp=20/20/40/0"
+    },
+    {
+      "id": "stats_1024_C_full",
+      "ok": true,
+      "detail": "got buy=18 sell=18 total=36 end=0 exp=18/18/36/0"
+    },
+    {
+      "id": "stats_1024_C_dev",
+      "ok": true,
+      "detail": "got buy=17 sell=17 total=34 end=0 exp=17/17/34/0"
+    },
+    {
+      "id": "stats_1024_C_new",
+      "ok": true,
+      "detail": "got buy=1 sell=1 total=2 end=0 exp=1/1/2/0"
+    },
+    {
+      "id": "trades_1024_filter_symbol",
+      "ok": true,
+      "detail": "rows=1"
+    },
+    {
+      "id": "feedback_1024_isolation",
+      "ok": true,
+      "detail": "count=2 sentinel=True new=True"
+    },
+    {
+      "id": "console_1024_clean",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "layout_390_no_overflow",
+      "ok": true,
+      "detail": "scrollWidth=390 clientWidth=390"
+    },
+    {
+      "id": "nav_390_all_reachable",
+      "ok": true,
+      "detail": "17/17"
+    },
+    {
+      "id": "stats_390_A_dev",
+      "ok": true,
+      "detail": "got buy=19 sell=18 total=37 end=1 exp=19/18/37/1"
+    },
+    {
+      "id": "stats_390_A_new",
+      "ok": true,
+      "detail": "got buy=1 sell=2 total=3 end=0 exp=1/2/3/0"
+    },
+    {
+      "id": "stats_390_A_full",
+      "ok": true,
+      "detail": "got buy=20 sell=20 total=40 end=0 exp=20/20/40/0"
+    },
+    {
+      "id": "stats_390_C_full",
+      "ok": true,
+      "detail": "got buy=18 sell=18 total=36 end=0 exp=18/18/36/0"
+    },
+    {
+      "id": "stats_390_C_dev",
+      "ok": true,
+      "detail": "got buy=17 sell=17 total=34 end=0 exp=17/17/34/0"
+    },
+    {
+      "id": "stats_390_C_new",
+      "ok": true,
+      "detail": "got buy=1 sell=1 total=2 end=0 exp=1/1/2/0"
+    },
+    {
+      "id": "trades_390_filter_symbol",
+      "ok": true,
+      "detail": "rows=1"
+    },
+    {
+      "id": "feedback_390_isolation",
+      "ok": true,
+      "detail": "count=2 sentinel=True new=True"
+    },
+    {
+      "id": "console_390_clean",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}
