@@ -17,6 +17,10 @@
     --accent-warning: #ffc107;
     --accent-danger: #dc3545;
     --accent-info: #17a2b8;
+    /* 中国习惯：红涨绿跌（正值红、负值绿、零/缺失中性） */
+    --color-up: #d9363e;
+    --color-down: #1a9e5f;
+    --color-neutral: #6c757d;
     --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
     --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
     --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
@@ -43,6 +47,9 @@
     --accent-primary: #4d9fff;
     --accent-primary-hover: #6db3ff;
     --accent-secondary: #adb5bd;
+    --color-up: #ff6b6b;
+    --color-down: #51cf66;
+    --color-neutral: #adb5bd;
     --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
     --shadow-md: 0 4px 6px rgba(0,0,0,0.3);
     --shadow-lg: 0 10px 25px rgba(0,0,0,0.4);
@@ -528,15 +535,15 @@ body {
 }
 
 .metric-delta.positive {
-    color: var(--accent-success);
+    color: var(--color-up);
 }
 
 .metric-delta.negative {
-    color: var(--accent-danger);
+    color: var(--color-down);
 }
 
 .metric-delta.neutral {
-    color: var(--text-muted);
+    color: var(--color-neutral);
 }
 
 /* Tables */
@@ -584,11 +591,15 @@ td.mono {
 }
 
 td.positive {
-    color: var(--accent-success);
+    color: var(--color-up);
 }
 
 td.negative {
-    color: var(--accent-danger);
+    color: var(--color-down);
+}
+
+td.neutral {
+    color: var(--color-neutral);
 }
 
 .pagination {
@@ -1601,12 +1612,79 @@ tr.v2-event-row {
 
 .mono.positive,
 span.positive {
-    color: var(--accent-success);
+    color: var(--color-up);
 }
 
 .mono.negative,
 span.negative {
-    color: var(--accent-danger);
+    color: var(--color-down);
+}
+
+.mono.neutral,
+span.neutral {
+    color: var(--color-neutral);
+}
+
+/* V2 trade review (GO-Web-V2-R2): expandable trade notes */
+.v2-details {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    margin-top: 10px;
+    background: var(--bg-secondary);
+}
+
+.v2-details > summary {
+    cursor: pointer;
+    font-weight: 600;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.v2-details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.v2-details > summary::before {
+    content: "\25B8";
+    color: var(--text-muted);
+    display: inline-block;
+    transition: transform 0.2s;
+}
+
+.v2-details[open] > summary::before {
+    content: "\25BE";
+}
+
+.v2-trade-note {
+    margin-top: 10px;
+}
+
+.v2-trade-note-body {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-light);
+}
+
+.v2-trade-note-body .v2-grid-2 {
+    margin-top: 0;
+}
+
+.v2-trade-note-body .v2-mini-stat {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+}
+
+.v2-trade-note-body table th {
+    text-align: left;
+    white-space: nowrap;
+    color: var(--text-secondary);
+    font-weight: 600;
+    padding-right: 12px;
 }
 
 @media (max-width: 1024px) {

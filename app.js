@@ -69,7 +69,8 @@
         'reconciliation.json',
         'v2_p2_status.json',
         'v2_p2_case.json',
-        'v2_review.json'
+        'v2_review.json',
+        'v2_trade_notes.json'
     ];
 
     const state = {
@@ -757,6 +758,254 @@
         });
     }
 
+    function v2Notes() {
+        return state.data.v2_trade_notes || null;
+    }
+
+    function v2SignedPct(v, dp, reason) {
+        if (!fmt.isNum(v)) return naInline(reason || '数据包未提供该百分比');
+        const cls = v > 0 ? 'positive' : (v < 0 ? 'negative' : 'neutral');
+        const sign = v > 0 ? '+' : '';
+        return '<span class="mono ' + cls + '">' + sign + fmt.pct(v, dp === undefined ? 2 : dp) + '</span>';
+    }
+
+    // Derive open positions at the period end from the daily timeline events.
+    // Only buy/sell fills count; signals, orders and cancellations never do.
+    function v2PeriodEndHoldings(g, period) {
+        const d = v2Data();
+        if (!d || !d.timelines) return [];
+        const def = v2PeriodDef(period);
+        const pos = {};
+        const lastBuy = {};
+        (d.timelines[g] || []).forEach(function (r) {
+            if (r.date < def.start || r.date > def.end) return;
+            (r.events || []).forEach(function (e) {
+                if (e.type === 'buy') {
+                    pos[e.symbol] = (pos[e.symbol] || 0) + e.quantity;
+                    lastBuy[e.symbol] = r.date;
+                } else if (e.type === 'sell') {
+                    pos[e.symbol] = (pos[e.symbol] || 0) - e.quantity;
+                }
+            });
+        });
+        const out = [];
+        Object.keys(pos).forEach(function (sym) {
+            if (pos[sym] > 0) {
+                out.push({ symbol: sym, quantity: pos[sym], last_buy_date: lastBuy[sym] || null });
+            }
+        });
+        out.sort(function (a, b) { return a.symbol < b.symbol ? -1 : 1; });
+        return out;
+    }
+
+    function v2TradeStats(g, period) {
+        const exp = v2Exp(g);
+        const st = (exp && exp.periods) ? exp.periods[period] : null;
+        const def = v2PeriodDef(period);
+        const buy = st ? st.buy_orders : null;
+        const sell = st ? st.sell_orders : null;
+        const holdings = v2PeriodEndHoldings(g, period);
+        return {
+            buy: buy,
+            sell: sell,
+            total: (fmt.isNum(buy) && fmt.isNum(sell)) ? buy + sell : null,
+            end_date: def.end,
+            end_holdings: holdings,
+            end_holdings_count: holdings.length,
+            held_days: st ? st.held_days : null,
+            trading_days: st ? st.trading_days : null
+        };
+    }
+
+    // Holding cycles relevant to the current period: closed sells whose fill
+    // date falls inside the period, plus positions still open at the period end.
+    function v2HoldingCycles(g, period) {
+        const d = v2Data();
+        const def = v2PeriodDef(period);
+        const cycles = [];
+        const t = d && d.trades ? d.trades[g] : null;
+        if (t && t.sells) {
+            t.sells.forEach(function (s) {
+                if (s.fill_date >= def.start && s.fill_date <= def.end) {
+                    cycles.push({
+                        symbol: s.symbol,
+                        status: 'closed',
+                        buy_date: s.entry_date,
+                        sell_date: s.fill_date,
+                        signal_date: s.signal_date,
+                        holding_days: s.holding_trading_days,
+                        quantity: s.quantity,
+                        net_pnl: s.net_pnl,
+                        net_return: s.net_return,
+                        reason: s.reason,
+                        cycle_id: s.cycle_id,
+                        order_id: s.order_id
+                    });
+                }
+            });
+        }
+        v2PeriodEndHoldings(g, period).forEach(function (h) {
+            cycles.push({
+                symbol: h.symbol,
+                status: 'open',
+                buy_date: h.last_buy_date,
+                sell_date: null,
+                signal_date: null,
+                holding_days: null,
+                quantity: h.quantity,
+                net_pnl: null,
+                net_return: null,
+                reason: null,
+                cycle_id: null,
+                order_id: null
+            });
+        });
+        cycles.sort(function (a, b) {
+            const da = a.sell_date || a.buy_date || '';
+            const db = b.sell_date || b.buy_date || '';
+            return da < db ? 1 : (da > db ? -1 : 0);
+        });
+        return cycles;
+    }
+
+    function v2StatsBlock(g, period) {
+        const s = v2TradeStats(g, period);
+        const num = function (v) { return fmt.isNum(v) ? fmt.money(v, 0) : naInline('数据包未提供'); };
+        const holdingsRows = s.end_holdings.map(function (h) {
+            return '<tr><td class="mono">' + esc(h.symbol) + '</td><td class="mono">' +
+                fmt.money(h.quantity, 0) + ' 股</td><td class="mono">' +
+                esc(h.last_buy_date || '—') + '</td><td class="sub">区间结束日快照；未平仓</td></tr>';
+        }).join('') || '<tr><td colspan="4">' + naCell('区间结束日无持仓（0 只）') + '</td></tr>';
+        return '<div class="v2-kpi-grid">' +
+            v2Kpi('买入成交笔数', num(s.buy), '按实际成交记录，不含信号/挂单/取消') +
+            v2Kpi('卖出成交笔数', num(s.sell), '按实际成交记录') +
+            v2Kpi('成交总笔数', num(s.total), '买入 + 卖出') +
+            v2Kpi('区间结束日期', '<span class="mono">' + esc(s.end_date) + '</span>', '期末状态取该日快照') +
+            v2Kpi('期末持仓股票数', num(s.end_holdings_count) + ' 只', '区间结束日仍持有的股票数') +
+            v2Kpi('持仓周期数（当前区间）', num(v2HoldingCycles(g, period).length), '闭合周期 + 期末未平仓；与成交笔数不同口径') +
+            '</div>' +
+            '<div class="card" style="margin-top:16px;"><div class="card-header"><span class="card-title">期末持仓明细</span>' +
+            '<span class="card-sub">区间 ' + esc(v2PeriodDef(period).label) + ' 结束日 ' + esc(s.end_date) + ' 快照</span></div><div class="card-body">' +
+            '<details class="v2-details"><summary>展开期末持仓明细（' + s.end_holdings_count + ' 只）</summary>' +
+            '<div class="table-container"><table class="matrix-table"><thead><tr><th>股票代码</th><th>持仓数量</th><th>最近买入成交日</th><th>说明</th></tr></thead><tbody>' +
+            holdingsRows + '</tbody></table></div>' +
+            '<div class="v2-note">期末状态来自区间结束日快照，不把上一阶段的持仓沿用到本阶段；平均持仓数、期间持有过的股票数、期末持仓数分列。</div></details></div></div>';
+    }
+
+    function v2ScoringAuditCard() {
+        const n = v2Notes();
+        const a = n && n.scoring_audit;
+        if (!a) {
+            return '<div class="card"><div class="card-header"><span class="card-title">评分方向审计</span></div><div class="card-body">' +
+                naCell('缺少 data/v2_trade_notes.json，无法展示评分方向审计') + '</div></div>';
+        }
+        const caseRows = (a.cases || []).map(function (c) {
+            return '<tr><td class="mono">' + esc(c.symbol) + '</td><td class="mono">' + esc(c.date) + '</td><td>' +
+                esc(c.remaining_dimension) + '</td><td class="mono">' + esc(String(c.remaining_score)) +
+                '</td><td class="mono">' + esc(String(c.threshold)) + '</td><td class="text-wrap sub">' + esc(c.derivation) + '</td></tr>';
+        }).join('');
+        const cls = a.classification || {};
+        const li = function (arr) {
+            return (arr || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('');
+        };
+        const aff = a.affected || {};
+        return '<div class="card"><div class="card-header"><span class="card-title">评分方向专项审计（只读，未改策略）</span>' +
+            '<span class="card-sub">区分确定性实现问题与策略定义问题</span></div><div class="card-body">' +
+            '<div class="v2-callout warning"><strong>真实含义：</strong>' + esc(a.score_meaning) + '</div>' +
+            '<div class="v2-callout danger"><strong>方向冲突：</strong>' + esc(a.direction_conflict) + '</div>' +
+            '<div class="v2-note">公式：<span class="mono">' + esc(a.formula) + '</span>；退出规则：' + esc(a.exit_rule) + '</div>' +
+            '<div class="table-container" style="margin-top:12px;"><table class="matrix-table"><thead><tr><th>股票</th><th>复核日</th><th>剩余维度</th><th>剩余分</th><th>阈值</th><th>来源推导</th></tr></thead><tbody>' +
+            caseRows + '</tbody></table></div>' +
+            '<div class="v2-grid-2" style="margin-top:12px;">' +
+            '<div><strong>确定性实现问题</strong><ul class="v2-limits">' + li(cls.deterministic_implementation_issue) + '</ul></div>' +
+            '<div><strong>策略定义问题</strong><ul class="v2-limits">' + li(cls.strategy_definition_issue) + '</ul></div>' +
+            '</div>' +
+            '<div class="v2-note"><strong>影响：</strong>冻结版本 ' + esc((aff.frozen_versions || []).join('、')) +
+            '；受影响交易：' + esc((aff.trades || []).join('；')) + '。' + esc(aff.note || '') + '</div>' +
+            '<div class="v2-callout info"><strong>修复建议（留待下一任务）：</strong>' + esc(a.recommendation) + '</div>' +
+            '<div class="v2-note">本页只展示评分真实含义与已发现疑点，不冒称风险分；本轮未翻转正负号、未改评分、未改阈值、未重跑收益。</div>' +
+            '</div></div>';
+    }
+
+    function v2HoldingCyclesTable(g, period) {
+        const cycles = v2HoldingCycles(g, period);
+        const rows = cycles.map(function (c) {
+            const open = c.status === 'open';
+            const statusBadge = open
+                ? '<span class="badge badge-warning">未平仓</span>'
+                : '<span class="badge badge-neutral">已平仓</span>';
+            const sellDate = open ? '<span class="na">尚未卖出</span>' : '<span class="mono">' + esc(c.sell_date) + '</span>';
+            const pnl = open ? '<span class="na">未平仓</span>' : v2SignedMoney(c.net_pnl, 2);
+            const ret = open ? '<span class="na">—</span>' : v2SignedPct(c.net_return, 4, '分母缺失或为0');
+            const sig = open ? '<span class="muted">—</span>' : '<span class="mono">' + esc(c.signal_date || '—') + '</span>';
+            const hd = fmt.isNum(c.holding_days) ? c.holding_days : '<span class="na">缺日历</span>';
+            return '<tr><td><strong class="mono">' + esc(c.symbol) + '</strong></td><td>' + statusBadge + '</td>' +
+                '<td class="mono">' + esc(c.buy_date || '—') + '</td>' +
+                '<td>' + sellDate + '</td>' +
+                '<td class="mono">' + hd + '</td>' +
+                '<td class="mono">' + pnl + '</td>' +
+                '<td class="mono">' + ret + '</td>' +
+                '<td class="mono">' + sig + '</td>' +
+                '<td class="sub text-wrap">' + (open ? '买入后尚未卖出；卖出日与盈亏为未平仓，不取期末日期冒充卖出日' : esc(c.reason || '') + '<div class="sub">cycle ' + esc(c.cycle_id === null || c.cycle_id === undefined ? '—' : c.cycle_id) + ' · 订单 ' + esc(c.order_id || '—') + '</div>') + '</td></tr>';
+        }).join('') || '<tr><td colspan="8">' + naCell('该区间无持仓周期') + '</td></tr>';
+        return '<div class="card"><div class="card-header"><span class="card-title">成交与持仓周期</span>' +
+            '<span class="card-sub">买入成交日 / 卖出成交日分列；信号日单独列；未平仓标注“尚未卖出”</span></div><div class="card-body">' +
+            '<div class="table-container"><table class="matrix-table"><thead><tr><th>股票</th><th>操作</th><th>买入成交日</th><th>卖出成交日</th><th>持有交易日</th><th>净盈亏</th><th>净收益率</th><th>卖出信号日</th><th>原因 / 周期</th></tr></thead><tbody>' +
+            rows + '</tbody></table></div>' +
+            '<div class="v2-note">本数据集每笔卖出对应单一买入批次（matched_lots 均为 1 条），按实际匹配记录展示；无多批次买入或部分卖出。买入行关联的后来卖出日属于事后展示，不进入策略输入。日期筛选按“卖出成交日（fill_date）”进行，不按信号日或期末日。</div></div></div>';
+    }
+
+    function v2TradeNotesCards() {
+        const n = v2Notes();
+        if (!n || !n.new_stage_explanations) {
+            return '<div class="card"><div class="card-header"><span class="card-title">新阶段三笔成交解释</span></div><div class="card-body">' +
+                naCell('缺少 data/v2_trade_notes.json，无法展示三笔成交解释') + '</div></div>';
+        }
+        const cards = n.new_stage_explanations.map(function (e) {
+            const isBuy = e.side === 'buy';
+            const badge = isBuy ? '<span class="badge badge-success">买入</span>' : '<span class="badge badge-danger">卖出</span>';
+            const price = e.price || {};
+            const cond = e.conditions || {};
+            const trig = e.sell_trigger || {};
+            const lots = (e.matched_lots || []).map(function (l) {
+                return esc(l.buy_date) + ' × ' + fmt.money(l.quantity, 0) + ' 股 @ ' + fmt.money(l.fill_price, 4);
+            }).join('<br>') || '—';
+            const priceRows = '<tr><th>真实未复权开盘价</th><td class="mono">' + fmt.money(price.raw_open, 4) + '</td></tr>' +
+                '<tr><th>成交价（含滑点）</th><td class="mono">' + fmt.money(price.fill_price, 4) + ' <span class="sub">' + esc(price.price_channel || '') + '</span></td></tr>' +
+                '<tr><th>数量 / 金额</th><td class="mono">' + fmt.money(e.quantity, 0) + ' 股 / ' + fmt.money(price.notional, 2) + ' 元</td></tr>' +
+                '<tr><th>费用（佣金/过户/印花）</th><td class="mono">' + fmt.money(price.commission, 2) + ' / ' + fmt.money(price.transfer_fee, 2) + ' / ' + fmt.money(price.stamp_tax, 2) + '，合计 ' + fmt.money(price.total_fees, 2) + '</td></tr>' +
+                (isBuy ? '<tr><th>总成本</th><td class="mono">' + fmt.money(price.total_cost, 2) + ' 元</td></tr>' : '<tr><th>卖出净回款 / 净盈亏</th><td class="mono">' + fmt.money(price.net_proceeds, 2) + ' / ' + v2SignedMoney(price.net_pnl, 2) + '</td></tr>');
+            const condRows = '<tr><th>市场</th><td>' + esc(cond.market || '—') + '</td><th>板块</th><td>' + esc(cond.sector || '—') + '</td></tr>' +
+                '<tr><th>价格位置</th><td>' + esc(cond.price_position || '—') + '</td><th>财务门禁</th><td>' + esc(cond.financial_state || '—') + '</td></tr>' +
+                '<tr><th>财务说明</th><td colspan="3" class="text-wrap">' + esc(cond.financial_detail || '—') + '</td></tr>';
+            const trigRows = trig.remaining_dimension ?
+                '<tr><th>卖出触发维度</th><td>' + esc((trig.triggers || []).join('、')) + '</td><th>组合</th><td>' + esc(trig.combination || '—') + '</td></tr>' +
+                '<tr><th>剩余维度</th><td>' + esc(trig.remaining_dimension) + '</td><th>剩余分 / 阈值</th><td class="mono">' + esc(String(trig.remaining_score)) + ' / ' + esc(String(trig.threshold)) + '</td></tr>' +
+                '<tr><th>三项分数</th><td colspan="3" class="mono">market ' + esc(String((trig.scores || {}).market)) + ' · sector ' + esc(String((trig.scores || {}).sector)) + ' · stock ' + esc(String((trig.scores || {}).stock)) + '</td></tr>' +
+                '<tr><th>公式</th><td colspan="3" class="text-wrap">' + esc(trig.formula || '') + '</td></tr>' : '';
+            return '<details class="v2-details v2-trade-note"><summary>' + badge + ' <strong class="mono">' + esc(e.symbol) + '</strong> ' + esc(e.name || '') +
+                ' · 信号 ' + esc(e.signal_date) + ' → 成交 ' + esc(e.fill_date) + ' · ' + fmt.money(e.quantity, 0) + ' 股</summary>' +
+                '<div class="v2-trade-note-body">' +
+                '<div class="v2-grid-2"><div><strong>价格与费用</strong><div class="table-container"><table class="matrix-table">' + priceRows + '</table></div></div>' +
+                '<div><strong>买卖条件</strong><div class="table-container"><table class="matrix-table">' + condRows + '</table></div>' +
+                (isBuy && e.budget ? '<div class="v2-note"><strong>预算依据：</strong>' + esc(e.budget.basis || '') + (fmt.isNum(e.budget.reserved_budget) ? '（reserved_budget ' + fmt.money(e.budget.reserved_budget, 2) + '）' : '') + '</div>' : '') +
+                '</div></div>' +
+                (!isBuy && trig.remaining_dimension ? '<div style="margin-top:12px;"><strong>卖出评分与触发</strong><div class="table-container"><table class="matrix-table">' + trigRows + '</table></div>' +
+                    '<div class="v2-note">匹配买入批次：' + lots + '</div></div>' : '') +
+                '<div class="v2-grid-2" style="margin-top:12px;">' +
+                '<div class="v2-mini-stat"><div class="v2-kpi-label">财务报告期 / 门禁值</div><div class="v2-kpi-value na">无法重建</div><div class="v2-kpi-sub">' + esc((e.financial_report || {}).note || '') + '</div></div>' +
+                '<div class="v2-mini-stat"><div class="v2-kpi-label">观察资格 / 观察记录</div><div class="v2-kpi-value">' + (e.observation && e.observation.eligible ? '具备资格' : '—') + '</div><div class="v2-kpi-sub">' + esc((e.observation || {}).note || '') + '</div></div>' +
+                '</div>' +
+                '<ul class="v2-limits">' + (e.notes || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' +
+                '</div></details>';
+        }).join('');
+        return '<div class="card"><div class="card-header"><span class="card-title">新阶段三笔成交解释</span>' +
+            '<span class="card-sub">信号日 vs 成交日；数量与预算；真实开盘价、滑点、费用；买卖条件与评分</span></div><div class="card-body">' +
+            '<div class="v2-callout info">' + esc(n.simulation_timing || '') + '</div>' +
+            '<div class="v2-callout warning">' + esc(n.disclaimer || '') + '</div>' +
+            cards + '</div></div>';
+    }
+
     function v2EventBadge(type) {
         const m = V2_EVENT_META[type] || { label: type, cls: 'badge-neutral' };
         return '<span class="badge ' + m.cls + '">' + esc(m.label) + '</span>';
@@ -1084,7 +1333,7 @@
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [{ label: '新阶段贡献（元）', data: vals, backgroundColor: vals.map(function (v) { return v >= 0 ? '#28a745' : '#dc3545'; }), borderRadius: 4 }]
+                datasets: [{ label: '新阶段贡献（元）', data: vals, backgroundColor: vals.map(function (v) { return v >= 0 ? '#d9363e' : '#1a9e5f'; }), borderRadius: 4 }]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
@@ -1192,11 +1441,12 @@
             v2Kpi('最大回撤', v2Pct(st.max_drawdown, 2), '谷值 ' + esc(st.max_drawdown_trough_date || '—')) +
             v2Kpi('平均资金暴露', v2Pct(st.avg_exposure, 2), '每日 stock MV / equity 的算术平均') +
             v2Kpi('有持仓天数', st.held_days + ' / ' + st.trading_days, fmt.pct(st.held_day_ratio, 2) + '（不是资金暴露）') +
-            v2Kpi('买入 / 卖出', st.buy_orders + ' / ' + st.sell_orders, otherLabel + '：' + otherSt.buy_orders + ' / ' + otherSt.sell_orders) +
+            v2Kpi('买入 / 卖出 / 合计', st.buy_orders + ' / ' + st.sell_orders + ' / ' + (st.buy_orders + st.sell_orders), otherLabel + '：' + otherSt.buy_orders + ' / ' + otherSt.sell_orders + ' / ' + (otherSt.buy_orders + otherSt.sell_orders) + '（对照）') +
             v2Kpi('基准（CSI300 价格）', v2Pct(st.benchmark_return, 4), '不含指数分红；策略为税前总收益') +
             v2Kpi('新阶段单票贡献占净 PnL', v2Pct(d.trades[g].new_stage.top_contribution_share, 2), esc(d.trades[g].new_stage.top_contributor) + '；分母是净 PnL，不是权重；剔除后 ' + fmt.pct(d.trades[g].new_stage.return_excluding_top, 4)) +
             v2Kpi('明确结论', '<span class="v2-kpi-text">数据齐备，交易样本少</span>', 'P20E：' + esc(d.validation.label), 'v2-kpi-wide') +
             '</div>' +
+            v2StatsBlock(g, p) +
             '<div class="card"><div class="card-header"><span class="card-title">三个阶段分开看（A 主方案 / C 对照）</span><span class="card-sub">新阶段收益不得覆盖全窗口结论</span></div><div class="card-body">' +
             '<div class="table-container"><table class="matrix-table"><thead><tr><th>区间</th><th>A 收益</th><th>C 收益</th><th>A 最大回撤</th><th>C 最大回撤</th><th>A 平均暴露</th><th>C 平均暴露</th><th>A 有持仓天数</th><th>C 有持仓天数</th></tr></thead><tbody>' + periodRows + '</tbody></table></div>' +
             '<div class="v2-note">开发阶段 2024-09-02~2026-07-29（460 日）；新时间段 2026-07-30~2026-11-19（75 日）；连续全窗口 2024-09-02~2026-11-19（535 日）。全窗口起点 1,000,000，阶段收益不是把全窗口收益重新起算。</div></div></div>' +
@@ -1223,6 +1473,7 @@
             v2Kpi('页面边界', '<span class="v2-kpi-text">只读本地静态数据</span>', '不加载外部模型 / 自动 AI 服务') +
             '</div><ul class="v2-limits">' + d.reconciliation.key_checks.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' +
             '<div class="v2-note">' + esc(d.reconciliation.note) + '</div></div></div>' +
+            v2ScoringAuditCard() +
             '<div class="card"><div class="card-header"><span class="card-title">口径与限制（必须与数字一起读）</span></div><div class="card-body"><ol class="v2-limits">' +
             d.limitations.map(function (l) { return '<li><strong>' + esc(l.title) + '：</strong>' + esc(l.text) + '</li>'; }).join('') +
             '</ol></div></div>';
@@ -1414,14 +1665,15 @@
                 '<td class="sub">' + (x.uses_boundary_market_value ? '从边界市值起算' : '新买入；无边界持仓') + '</td></tr>';
         }).join('');
         const sellRows = pageSells.map(function (s) {
-            return '<tr><td class="mono">' + esc(s.fill_date) + '</td><td class="mono">' + esc(s.symbol) + '</td><td class="mono">' + esc(s.entry_date) + '</td>' +
+            return '<tr><td class="mono">' + esc(s.symbol) + '</td><td class="mono">' + esc(s.entry_date) + '</td>' +
+                '<td class="mono">' + esc(s.fill_date) + '</td><td class="mono">' + esc(s.signal_date || '—') + '</td>' +
                 '<td class="mono">' + (fmt.isNum(s.holding_trading_days) ? s.holding_trading_days : naInline('缺少交易日历索引')) + '</td>' +
                 '<td class="mono">' + fmt.money(s.quantity, 0) + '</td>' +
                 '<td class="mono">' + v2SignedMoney(s.net_pnl, 2) + '</td>' +
-                '<td class="mono">' + v2Pct(s.net_return, 4) + '</td>' +
+                '<td class="mono">' + v2SignedPct(s.net_return, 4, '分母缺失或为0') + '</td>' +
                 '<td class="mono">' + v2SignedMoney(s.cumulative_realized_pnl, 2) + '</td>' +
                 '<td class="sub text-wrap">' + esc(s.reason || '') + '<div class="sub">cycle ' + esc(s.cycle_id === null || s.cycle_id === undefined ? '—' : s.cycle_id) + ' · 费用 ' + fmt.money(s.fees, 2) + '</div></td></tr>';
-        }).join('') || '<tr><td colspan="9">' + naCell('该区间/筛选无卖出成交') + '</td></tr>';
+        }).join('') || '<tr><td colspan="10">' + naCell('该区间/筛选无卖出成交') + '</td></tr>';
         const divRows = t.dividends_by_symbol.map(function (x) {
             return '<tr><td class="mono">' + esc(x.symbol) + '</td><td class="mono">' + fmt.money(x.dividends, 2) + '</td><td class="mono">' + x.pay_events + '</td></tr>';
         }).join('') || '<tr><td colspan="3">' + naCell('全窗口无现金分红入账') + '</td></tr>';
@@ -1430,7 +1682,8 @@
         const boundarySell = boundaryContrib ? t.sells.filter(function (s) { return s.symbol === boundaryContrib.symbol && s.period === 'new'; })[0] : null;
         const boundaryNote = g === 'A' && boundaryContrib ? '<div class="v2-callout warning"><strong>边界持仓：</strong>' + esc(boundaryContrib.symbol) + ' 在 2026-07-29 已持有 28,900 股，边界市值 ' + fmt.money(boundaryContrib.boundary_market_value, 2) + '。新阶段贡献 ' + fmt.money(boundaryContrib.contribution, 2) + ' 从边界市值起算（阶段收益率 ' + fmt.pct(boundaryContrib.stage_return_on_boundary_value, 4) + ' = ' + fmt.money(boundaryContrib.contribution, 2) + ' / ' + fmt.money(boundaryContrib.boundary_market_value, 2) + '）；该次卖出相对全周期成本的净盈亏是 ' + fmt.money(boundarySell ? boundarySell.net_pnl : null, 2) + '，全周期净收益率 ' + fmt.pct(boundarySell ? boundarySell.net_return : null, 4) + '。不能拿全持仓周期收益充当阶段收益。</div>' : '<div class="v2-callout info"><strong>对照 C：</strong>2026-07-29 边界为空仓；新阶段 605138.SH 为 2026-08-28 新买入，阶段贡献 ' + fmt.money(newStage.net_pnl, 2) + ' 与全周期卖出净盈亏相同。</div>';
 
-        container.innerHTML = v2PageHeader('V2 交易与贡献', '卖出净盈亏、净收益率、持有交易日、累计已实现；新阶段分股票贡献与分红') +
+        container.innerHTML = v2PageHeader('V2 交易与贡献', '成交统计、买入/卖出日期、持仓周期、净盈亏与阶段贡献') +
+            v2StatsBlock(g, p) +
             '<div class="v2-kpi-grid">' +
             v2Kpi('卖出成交（当前区间）', fmt.money(sells.length, 0), 'A 全窗口 20 / 新阶段 2') +
             v2Kpi('卖出净盈亏（当前区间）', v2SignedMoney(sells.reduce(function (a, s) { return a + s.net_pnl; }, 0), 2), '已扣卖出费用') +
@@ -1440,6 +1693,7 @@
             v2Kpi('分红（全窗口，税前）', fmt.money(t.dividends_total, 2), '不并入卖出净盈亏') +
             '</div>' +
             boundaryNote +
+            v2HoldingCyclesTable(g, p) +
             '<div class="v2-grid-2">' +
             '<div class="card"><div class="card-header"><span class="card-title">新阶段分股票贡献与对账</span><span class="card-sub">边界市值 + 新现金流 + 分红</span></div><div class="card-body">' +
             '<div class="table-container"><table class="matrix-table"><thead><tr><th>股票</th><th>边界市值</th><th>期末市值</th><th>新买入现金流出</th><th>卖出净回款</th><th>分红</th><th>阶段贡献</th><th>占净 PnL</th><th>口径</th></tr></thead><tbody>' + contribRows + '</tbody></table></div>' +
@@ -1451,14 +1705,16 @@
             '<div class="v2-mini-stat"><div class="v2-kpi-label">股票资产内部最大单票占比</div><div class="v2-kpi-value">' + v2Pct(st.max_single_weight_within_stock_assets, 2) + '</div><div class="v2-kpi-sub">分母 = 当日股票市值合计；只有一只股票时必然 100%</div></div>' +
             '<div class="v2-mini-stat"><div class="v2-kpi-label">占组合总权益最大单票占比</div><div class="v2-kpi-value">' + v2Pct(st.max_single_weight_of_total_equity, 2) + '</div><div class="v2-kpi-sub">分母 = 总权益；' + esc(weight.date || '—') + ' ' + esc(weight.symbol || '') + '，市值 ' + fmt.money(weight.market_value, 2) + ' / 权益 ' + fmt.money(weight.equity, 2) + '</div></div>' +
             '</div><div class="v2-note">两个比例不能混用；页面上任何“最大单票权重”都必须带分母说明。</div></div></div>' +
+            v2TradeNotesCards() +
+            v2ScoringAuditCard() +
             '<div class="card"><div class="card-header"><span class="card-title">卖出明细</span><span class="card-sub">排序、筛选；累计已实现自 2024-09-02 起</span></div><div class="card-body">' +
             '<div class="filter-bar"><div class="filter-group"><label>股票</label><select id="v2SymbolFilter"><option value="">全部</option>' +
             symbols.map(function (s) { return '<option value="' + esc(s) + '"' + (state.v2.tradeSymbol === s ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></div>' +
-            '<div class="filter-group"><label>区间</label><span class="v2-inline-value">' + esc(def.label) + ' · ' + esc(def.start) + ' ~ ' + esc(def.end) + '</span></div></div>' +
+            '<div class="filter-group"><label>区间</label><span class="v2-inline-value">' + esc(def.label) + ' · ' + esc(def.start) + ' ~ ' + esc(def.end) + '</span><span class="sub">按卖出成交日（fill_date）筛选</span></div></div>' +
             '<div class="table-container"><table class="matrix-table" id="v2SellTable"><thead><tr>' +
-            v2SortHeader('成交日', 'fill_date') + v2SortHeader('股票', 'symbol') + '<th>建仓日</th>' + v2SortHeader('持有交易日', 'holding_trading_days') + '<th>数量</th>' + v2SortHeader('净盈亏', 'net_pnl') + v2SortHeader('净收益率', 'net_return') + '<th>累计已实现</th><th>原因 / 周期</th></tr></thead><tbody>' + sellRows + '</tbody></table></div>' +
+            v2SortHeader('股票', 'symbol') + '<th>买入成交日</th>' + v2SortHeader('卖出成交日', 'fill_date') + '<th>卖出信号日</th>' + v2SortHeader('持有交易日', 'holding_trading_days') + '<th>数量</th>' + v2SortHeader('净盈亏', 'net_pnl') + v2SortHeader('净收益率', 'net_return') + '<th>累计已实现</th><th>原因 / 周期</th></tr></thead><tbody>' + sellRows + '</tbody></table></div>' +
             v2Pager(sells.length, page, pageSize, 'data-v2-trade-page') +
-            '<div class="v2-note">净收益率 = 卖出净盈亏 / 买入总成本；持有交易日按交易日历索引差；累计已实现为组合自 2024-09-02 起的累计值，不是单日收益。</div></div></div>' +
+            '<div class="v2-note">买入成交日与卖出成交日分列；卖出信号日单独列，不与成交日混用。净收益率 = 卖出净盈亏 / 买入总成本；持有交易日按交易日历索引差；累计已实现为组合自 2024-09-02 起的累计值，不是单日收益。筛选后记录数 ' + sells.length + ' 条，与区间成交总数分列显示。</div></div></div>' +
             '<div class="v2-grid-2">' +
             '<div class="card"><div class="card-header"><span class="card-title">区间内累计已实现净盈亏</span></div><div class="card-body"><div class="chart-container" style="height:300px;"><canvas id="v2CumulativeChart"></canvas></div></div></div>' +
             '<div class="card"><div class="card-header"><span class="card-title">分红（全窗口，税前）</span><span class="card-sub">分红现金不并入卖出净盈亏</span></div><div class="card-body"><div class="table-container"><table><thead><tr><th>股票</th><th>分红现金</th><th>支付事件</th></tr></thead><tbody>' + divRows + '</tbody></table></div><div class="v2-note">分红为税前；post_tax_return_verified=false。</div></div></div>' +

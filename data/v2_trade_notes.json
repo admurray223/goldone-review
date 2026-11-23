@@ -1,0 +1,251 @@
+{
+  "schema_version": "1.0.0",
+  "task": "GO-Web-V2-R2",
+  "generated_at": "2026-11-23T14:16:43.130562+00:00",
+  "generated_from": "frozen P20E prefix orders + review_cycles (read-only)",
+  "disclaimer": "本文件为从冻结记录派生的展示数据，只读展示；不修改交易、策略、数据库或历史收益。市场/板块/价格状态为价格与 breadth 代理，不是真实资金流或大单承接。",
+  "simulation_timing": "模拟时序：收盘形成信号，下一交易日开盘尝试成交；买入成交价=真实未复权开盘价×(1+0.1%)；卖出模拟价=开盘价×0.999，另计费用。这是回测假设，不保证真实市场可成交。",
+  "new_stage_explanations": [
+    {
+      "id": "buy_688009_20260811",
+      "side": "buy",
+      "order_id": "r2-0038",
+      "symbol": "688009.SH",
+      "name": "中国通号",
+      "signal_date": "2026-08-10",
+      "fill_date": "2026-08-11",
+      "quantity": 33800,
+      "budget": {
+        "reserved_budget": 168522.2233,
+        "planned_cost": 168197.71,
+        "basis": "预算依据：2026-08-11 执行账本 reserved_budget=168,522.22，planned_cost=168,197.71；目标仓位按研究口径的固定比例。"
+      },
+      "price": {
+        "raw_open": 4.97,
+        "fill_price": 4.97497,
+        "price_channel": "raw_open_with_slippage",
+        "notional": 168153.99,
+        "commission": 42.04,
+        "transfer_fee": 1.68,
+        "stamp_tax": 0.0,
+        "total_fees": 43.72,
+        "total_cost": 168197.71
+      },
+      "conditions": {
+        "market": "normal",
+        "sector": "healthy",
+        "price_position": "neutral",
+        "financial_state": "passed",
+        "financial_detail": "All financial checks passed",
+        "scope": "daily_buy"
+      },
+      "financial_report": {
+        "period": null,
+        "gate_values": null,
+        "reconstructable": false,
+        "note": "冻结展示数据（fin.gate_evaluation 为空）未提供该买入日的财务报告期与逐项门禁值；只能确认 financial_state=passed，无法从冻结记录重建具体报告期与指标值。"
+      },
+      "observation": {
+        "eligible": true,
+        "reconstructable": false,
+        "note": "permission.observation_eligible 记录为 true；逐票观察明细（候选观察记录）未在冻结展示数据中逐条保存，无法重建完整观察流水。"
+      },
+      "notes": [
+        "收盘形成信号，下一交易日开盘尝试成交（T+1 假设）。",
+        "成交价 = 真实未复权开盘价 × (1 + 0.1% 滑点)。",
+        "这是回测假设，不保证真实市场可按开盘价成交。"
+      ]
+    },
+    {
+      "id": "sell_605138_20261013",
+      "side": "sell",
+      "order_id": "r2-0039",
+      "symbol": "605138.SH",
+      "name": "盛泰集团",
+      "signal_date": "2026-10-12",
+      "fill_date": "2026-10-13",
+      "quantity": 28900,
+      "price": {
+        "raw_open": 6.05,
+        "fill_price": 6.04395,
+        "price_channel": "raw_open_with_slippage",
+        "notional": 174670.16,
+        "commission": 43.67,
+        "transfer_fee": 1.75,
+        "stamp_tax": 174.67,
+        "total_fees": 220.09,
+        "net_proceeds": 174450.07,
+        "matched_cost": 168120.61,
+        "net_pnl": 6329.46
+      },
+      "matched_lots": [
+        {
+          "buy_date": "2026-07-13",
+          "quantity": 28900,
+          "fill_price": 5.81581,
+          "fee_per_share": 0.0015121107
+        }
+      ],
+      "sell_trigger": {
+        "review_date": "2026-10-12",
+        "holding_trading_days": 59,
+        "triggers": [
+          "market",
+          "sector"
+        ],
+        "combination": "market+sector",
+        "remaining_dimension": "stock",
+        "remaining_score": 6.331115,
+        "threshold": 5.0,
+        "scores": {
+          "market": 0.0,
+          "sector": 2.231116,
+          "stock": 6.331115
+        },
+        "score_source": "fixture",
+        "score_config_id": "p7_r1_research_proxy_v1",
+        "reason_code": "two_triggered_remaining_score_ge_threshold",
+        "details": "market+sector triggered, remaining stock score 6.331115 >= 5.0; exit signal wins over any add suspension.",
+        "market_state": "weakening",
+        "sector_state": "weakening",
+        "financial_state": "pass",
+        "current_net_return": 0.04687343,
+        "formula": "维度分 = clamp(5 + 动量×100, 0, 10)；动量>0（上涨）→ 分>5；动量<0（下跌）→ 分<5。退出要求“剩余维度分 ≥ 阈值 5”。"
+      },
+      "notes": [
+        "卖出信号在收盘形成，下一交易日开盘尝试成交。",
+        "卖出模拟价 = 真实未复权开盘价 × 0.999，另计卖出费用（佣金、过户费、印花税）。",
+        "这是回测假设，不保证真实市场可按开盘价成交。"
+      ]
+    },
+    {
+      "id": "sell_688009_20261015",
+      "side": "sell",
+      "order_id": "r2-0040",
+      "symbol": "688009.SH",
+      "name": "中国通号",
+      "signal_date": "2026-10-14",
+      "fill_date": "2026-10-15",
+      "quantity": 33800,
+      "price": {
+        "raw_open": 4.91,
+        "fill_price": 4.90509,
+        "price_channel": "raw_open_with_slippage",
+        "notional": 165792.04,
+        "commission": 41.45,
+        "transfer_fee": 1.66,
+        "stamp_tax": 165.79,
+        "total_fees": 208.9,
+        "net_proceeds": 165583.14,
+        "matched_cost": 168197.71,
+        "net_pnl": -2614.57
+      },
+      "matched_lots": [
+        {
+          "buy_date": "2026-08-11",
+          "quantity": 33800,
+          "fill_price": 4.97497,
+          "fee_per_share": 0.0012934911
+        }
+      ],
+      "sell_trigger": {
+        "review_date": "2026-10-14",
+        "holding_trading_days": 40,
+        "triggers": [
+          "market",
+          "sector"
+        ],
+        "combination": "market+sector",
+        "remaining_dimension": "stock",
+        "remaining_score": 5.0,
+        "threshold": 5.0,
+        "scores": {
+          "market": 0.0,
+          "sector": 3.078264,
+          "stock": 5.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "p7_r1_research_proxy_v1",
+        "reason_code": "two_triggered_remaining_score_ge_threshold",
+        "details": "market+sector triggered, remaining stock score 5.0 >= 5.0; exit signal wins over any add suspension.",
+        "market_state": "weakening",
+        "sector_state": "weakening",
+        "financial_state": "missing",
+        "current_net_return": -0.0113064,
+        "formula": "维度分 = clamp(5 + 动量×100, 0, 10)；动量>0（上涨）→ 分>5；动量<0（下跌）→ 分<5。退出要求“剩余维度分 ≥ 阈值 5”。"
+      },
+      "notes": [
+        "卖出信号在收盘形成，下一交易日开盘尝试成交。",
+        "卖出模拟价 = 真实未复权开盘价 × 0.999，另计卖出费用（佣金、过户费、印花税）。",
+        "这是回测假设，不保证真实市场可按开盘价成交。"
+      ]
+    }
+  ],
+  "context": {
+    "buy_605138": {
+      "order_id": "r2-0036",
+      "signal_date": "2026-07-10",
+      "fill_date": "2026-07-13",
+      "quantity": 28900,
+      "raw_open": 5.81,
+      "fill_price": 5.81581,
+      "total_fees": 43.7,
+      "total_cost": 168120.61,
+      "note": "605138.SH 原买入（属于开发阶段，非新阶段成交），用于解释新阶段卖出 #2 的成本来源。"
+    }
+  },
+  "scoring_audit": {
+    "title": "评分方向专项审计（只读，未改策略）",
+    "formula": "维度分 = clamp(5 + 动量×100, 0, 10)",
+    "dimensions": {
+      "market": "market_momentum_20d（大盘 20 日动量）",
+      "sector": "sector_return_1d（板块 1 日收益）",
+      "stock": "price_momentum_20d（个股 20 日价格动量）"
+    },
+    "score_meaning": "实现上三项分数是“动量/强弱”分：5 为中性，>5 表示上涨动能，<5 表示下跌动能；并非“风险分”。设计草案 scoring_draft.md 把 0-10 定义为“风险”（0=极低风险、10=极高风险），两者方向相反。",
+    "exit_rule": "两个维度触发（风险状态）后，检查剩余维度分 ≥ 阈值 5 则卖出。",
+    "direction_conflict": "存在方向冲突：退出要求剩余维度分 ≥ 5，而分数 = 5 + 动量×100，于是“上涨/走强”更容易满足 ≥5 从而触发风险卖出，“下跌/走弱”反而降低分数、难以触发。这与“风险越高越应卖出”的直觉相反。",
+    "cases": [
+      {
+        "symbol": "605138.SH",
+        "date": "2026-10-12",
+        "remaining_dimension": "stock",
+        "remaining_score": 6.331115,
+        "threshold": 5.0,
+        "derivation": "stock_mom20 = (6.331115-5)/100 = +1.331115%（20 日价格动量上涨 1.33%）；market=0.0（大盘动量 ≤ -5%）、sector=2.231116（板块 1 日 -2.77%）"
+      },
+      {
+        "symbol": "688009.SH",
+        "date": "2026-10-14",
+        "remaining_dimension": "stock",
+        "remaining_score": 5.0,
+        "threshold": 5.0,
+        "derivation": "stock_mom20 = (5.0-5)/100 = 0.0%（20 日价格动量持平）；注意 5.0 恰好等于阈值，且等于缺失数据在排序路径使用的默认值 5.0，需核实是真实 0% 动量还是缺失默认值"
+      }
+    ],
+    "classification": {
+      "deterministic_implementation_issue": [
+        "评分公式 clamp(5 + 动量×100) 实为动量/强弱分，而退出阈值 ≥5 与设计草案的风险分语义相反，导致上涨更易触发风险卖出（方向倒置）。",
+        "缺失数据在排序路径回退为 5.0（=阈值），可能让缺失值恰好通过 ≥5 判定；需区分“真实 0% 动量”与“缺失默认值”。"
+      ],
+      "strategy_definition_issue": [
+        "三项分数到底表示“强弱”还是“风险”，冻结策略与设计草案定义不一致；退出阈值 5 的语义未在冻结配置中明确。",
+        "阈值/正负方向属于策略定义，需由策略负责人确认后另行修复，本任务不改。"
+      ]
+    },
+    "affected": {
+      "frozen_versions": [
+        "P12-A_fixed",
+        "P12-C_fixed",
+        "P20E 连续延伸验证"
+      ],
+      "trades": [
+        "r2-0039 605138.SH 卖出 2026-10-13",
+        "r2-0040 688009.SH 卖出 2026-10-15",
+        "所有 reason=holding_review_exit:two_triggered_remaining_score_ge_threshold 的历史卖出"
+      ],
+      "note": "评分方向问题影响所有使用该退出规则的 V2 卖出决策；本轮只审计，不改策略、不翻转符号、不重跑收益。"
+    },
+    "recommendation": "下一任务：由策略负责人确认三项分数的语义（强弱 vs 风险）。若目标为风险分，应把公式改为“风险越高分越高”（如 clamp(5 - 动量×100)）并明确缺失值不算通过；若目标为强弱分，则退出阈值语义需重新定义。改动前不得直接翻转正负号或重跑收益。"
+  }
+}
