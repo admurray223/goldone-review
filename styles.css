@@ -88,12 +88,6 @@ body {
     border-bottom: 1px solid var(--border-color);
     gap: 24px;
     flex-wrap: wrap;
-    /* Prevent header from intercepting clicks on children; enable on interactive elements */
-    pointer-events: none;
-}
-
-.header * {
-    pointer-events: auto;
 }
 
 .header-left {
@@ -958,7 +952,7 @@ td.negative {
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
+@media (max-width: 1440px) {
     .main-nav {
         order: 3;
         width: 100%;
@@ -1284,7 +1278,7 @@ tr.active-row:hover {
     flex-shrink: 0;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1440px) {
     .main-nav {
         max-width: 100%;
     }
