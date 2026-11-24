@@ -1246,27 +1246,46 @@ tr.active-row:hover {
     max-width: 100vw;
 }
 
-/* Fix experiment picker dropdown interception */
+/* Ensure experiment picker has constrained width and doesn't intercept nav clicks */
 .experiment-picker {
-    /* Container doesn't intercept clicks; only the select itself does */
-    pointer-events: none;
+    /* Constrained width prevents label/select from extending over nav links */
+    max-width: 280px;
+    flex-shrink: 0;
 }
 
 .experiment-picker label {
-    /* Label also shouldn't intercept when select is closed */
-    pointer-events: none;
+    /* Label should not extend beyond its container */
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    vertical-align: middle;
 }
 
 .experiment-picker select {
-    /* Only the select itself receives pointer events */
-    pointer-events: auto;
-    position: relative;
-    z-index: 10;
+    /* Select has fixed max-width matching container */
+    max-width: 260px;
+    flex-shrink: 0;
 }
 
-/* Main nav should be clickable */
+/* Main nav should be above experiment picker in stacking */
 .main-nav {
-    pointer-events: auto;
+    position: relative;
+    z-index: 5;
+}
+
+/* Header sticky positioning should not create unnecessary stacking context */
+.header {
+    max-width: 100vw;
+    /* Don't create stacking context unless needed */
+    isolation: auto;
+}
+
+/* Nav links always clickable */
+.nav-link {
+    position: relative;
+    z-index: 10;
 }
 
 .main-nav {
@@ -1309,7 +1328,7 @@ tr.active-row:hover {
 /* Additional safety: make sure nav links are always clickable */
 .nav-link {
     position: relative;
-    z-index: 5;
+    z-index: 10;
 }
 
 @media (max-width: 640px) {
