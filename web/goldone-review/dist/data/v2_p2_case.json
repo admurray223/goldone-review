@@ -1,0 +1,2454 @@
+{
+  "label": "功能演示 · fixture 确定性闭环",
+  "is_fixture_demo": true,
+  "not_formal_backtest": true,
+  "disclaimer": "本案例的财务、评分、价格、费用均为 fixture，仅验证规则实现，不是历史真实数据实验，也不是正式V2收益。",
+  "summary": {
+    "initial_cash": 1000000.0,
+    "final_equity": 1097464.42,
+    "total_return": 0.09746442,
+    "total_fees": 456.64,
+    "total_realized_pnl": -2118.97,
+    "orders": 6,
+    "buy_orders": 5,
+    "sell_orders": 1,
+    "reviews": 21,
+    "exit_signals": 1,
+    "not_evaluable_reviews": 1,
+    "hold_reviews": 19,
+    "hold_no_add_reviews": 0,
+    "days": 17
+  },
+  "orders": [
+    {
+      "order_id": "ord-0001",
+      "symbol": "AAA.SZ",
+      "side": "buy",
+      "quantity": 18000,
+      "status": "filled",
+      "signal_date": "2025-01-02",
+      "fill_dates": [
+        "2025-01-03"
+      ],
+      "reason": "fixture candidate A · 第二交易日板块事件",
+      "reject_reason": null,
+      "fills": [
+        {
+          "fill_date": "2025-01-03",
+          "quantity": 18000,
+          "fill_price": 9.9798699,
+          "raw_open": 9.9699,
+          "total_fees": 46.71,
+          "net_pnl": null,
+          "price_channel": "raw_open_with_slippage"
+        }
+      ]
+    },
+    {
+      "order_id": "ord-0002",
+      "symbol": "BBB.SZ",
+      "side": "buy",
+      "quantity": 9000,
+      "status": "filled",
+      "signal_date": "2025-01-02",
+      "fill_dates": [
+        "2025-01-03"
+      ],
+      "reason": "fixture candidate B · 第5日定时+事件合并",
+      "reject_reason": null,
+      "fills": [
+        {
+          "fill_date": "2025-01-03",
+          "quantity": 9000,
+          "fill_price": 19.92985995,
+          "raw_open": 19.90995,
+          "total_fees": 46.63,
+          "net_pnl": null,
+          "price_channel": "raw_open_with_slippage"
+        }
+      ]
+    },
+    {
+      "order_id": "ord-0003",
+      "symbol": "CCC.SZ",
+      "side": "buy",
+      "quantity": 6000,
+      "status": "filled",
+      "signal_date": "2025-01-02",
+      "fill_dates": [
+        "2025-01-03"
+      ],
+      "reason": "fixture candidate C · 无事件定期复核/停牌unknown",
+      "reject_reason": null,
+      "fills": [
+        {
+          "fill_date": "2025-01-03",
+          "quantity": 6000,
+          "fill_price": 29.87985,
+          "raw_open": 29.85,
+          "total_fees": 46.61,
+          "net_pnl": null,
+          "price_channel": "raw_open_with_slippage"
+        }
+      ]
+    },
+    {
+      "order_id": "ord-0004",
+      "symbol": "DDD.SZ",
+      "side": "buy",
+      "quantity": 17500,
+      "status": "filled",
+      "signal_date": "2025-01-02",
+      "fill_dates": [
+        "2025-01-03"
+      ],
+      "reason": "fixture candidate D · 涨超15%不自动卖出",
+      "reject_reason": null,
+      "fills": [
+        {
+          "fill_date": "2025-01-03",
+          "quantity": 17500,
+          "fill_price": 10.2587485,
+          "raw_open": 10.2485,
+          "total_fees": 46.68,
+          "net_pnl": null,
+          "price_channel": "raw_open_with_slippage"
+        }
+      ]
+    },
+    {
+      "order_id": "ord-0005",
+      "symbol": "EEE.SZ",
+      "side": "buy",
+      "quantity": 12000,
+      "status": "filled",
+      "signal_date": "2025-01-02",
+      "fill_dates": [
+        "2025-01-03"
+      ],
+      "reason": "fixture candidate E · 两层触发评分不足→足5分退出",
+      "reject_reason": null,
+      "fills": [
+        {
+          "fill_date": "2025-01-03",
+          "quantity": 12000,
+          "fill_price": 14.92996505,
+          "raw_open": 14.91505,
+          "total_fees": 46.58,
+          "net_pnl": null,
+          "price_channel": "raw_open_with_slippage"
+        }
+      ]
+    },
+    {
+      "order_id": "ord-0007",
+      "symbol": "EEE.SZ",
+      "side": "sell",
+      "quantity": 12000,
+      "status": "filled",
+      "signal_date": "2025-01-17",
+      "fill_dates": [
+        "2025-01-21",
+        "2025-01-22"
+      ],
+      "reason": "holding_review_exit:two_triggered_remaining_score_ge_threshold",
+      "reject_reason": null,
+      "fills": [
+        {
+          "fill_date": "2025-01-21",
+          "quantity": 6000,
+          "fill_price": 14.78085435,
+          "raw_open": 14.79565,
+          "total_fees": 111.75,
+          "net_pnl": -1029.7,
+          "price_channel": "raw_open_with_slippage"
+        },
+        {
+          "fill_date": "2025-01-22",
+          "quantity": 6000,
+          "fill_price": 14.7709143,
+          "raw_open": 14.7857,
+          "total_fees": 111.68,
+          "net_pnl": -1089.27,
+          "price_channel": "raw_open_with_slippage"
+        }
+      ]
+    }
+  ],
+  "reviews": [
+    {
+      "symbol": "AAA.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-06",
+      "holding_trading_days": 1,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "market_weakening",
+        "sector_risk_change"
+      ],
+      "scheduled_due": false,
+      "event_due": true,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": 1035.63,
+      "current_net_return": 0.00576361,
+      "highest_net_return": 0.00576361,
+      "highest_net_return_date": "2025-01-06",
+      "drawdown_from_high": 0.0,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": "2025-01-10",
+      "original_buy_reason": "fixture candidate A · 第二交易日板块事件",
+      "market_state": "weakening",
+      "sector_state": "risk",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: Best evaluated pair market+sector remaining stock=3.0 < 5.0."
+      ],
+      "decision": {
+        "symbol": "AAA.SZ",
+        "trade_date": "2025-01-06",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "Best evaluated pair market+sector remaining stock=3.0 < 5.0.",
+        "triggered_dimensions": [
+          "market",
+          "sector"
+        ],
+        "unknown_dimensions": [],
+        "combination": "market+sector",
+        "remaining_dimension": "stock",
+        "remaining_score": 3.0,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 6.0,
+          "stock": 3.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-06",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "BBB.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-06",
+      "holding_trading_days": 1,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "market_weakening"
+      ],
+      "scheduled_due": false,
+      "event_due": true,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": 764.63,
+      "current_net_return": 0.00426179,
+      "highest_net_return": 0.00426179,
+      "highest_net_return_date": "2025-01-06",
+      "drawdown_from_high": 0.0,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": "2025-01-10",
+      "original_buy_reason": "fixture candidate B · 第5日定时+事件合并",
+      "market_state": "weakening",
+      "sector_state": "healthy",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: No two-layer combination reached the exit threshold."
+      ],
+      "decision": {
+        "symbol": "BBB.SZ",
+        "trade_date": "2025-01-06",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "No two-layer combination reached the exit threshold.",
+        "triggered_dimensions": [
+          "market"
+        ],
+        "unknown_dimensions": [],
+        "combination": null,
+        "remaining_dimension": null,
+        "remaining_score": null,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 1.0,
+          "stock": 2.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-06",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "CCC.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-06",
+      "holding_trading_days": 1,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "market_weakening"
+      ],
+      "scheduled_due": false,
+      "event_due": true,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": 674.29,
+      "current_net_return": 0.00376014,
+      "highest_net_return": 0.00376014,
+      "highest_net_return_date": "2025-01-06",
+      "drawdown_from_high": 0.0,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": "2025-01-10",
+      "original_buy_reason": "fixture candidate C · 无事件定期复核/停牌unknown",
+      "market_state": "weakening",
+      "sector_state": "healthy",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: No two-layer combination reached the exit threshold."
+      ],
+      "decision": {
+        "symbol": "CCC.SZ",
+        "trade_date": "2025-01-06",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "No two-layer combination reached the exit threshold.",
+        "triggered_dimensions": [
+          "market"
+        ],
+        "unknown_dimensions": [],
+        "combination": null,
+        "remaining_dimension": null,
+        "remaining_score": null,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 1.0,
+          "stock": 2.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-06",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "DDD.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-06",
+      "holding_trading_days": 1,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "market_weakening"
+      ],
+      "scheduled_due": false,
+      "event_due": true,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": 6082.72,
+      "current_net_return": 0.03387291,
+      "highest_net_return": 0.03387291,
+      "highest_net_return_date": "2025-01-06",
+      "drawdown_from_high": 0.0,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": "2025-01-10",
+      "original_buy_reason": "fixture candidate D · 涨超15%不自动卖出",
+      "market_state": "weakening",
+      "sector_state": "healthy",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: No two-layer combination reached the exit threshold."
+      ],
+      "decision": {
+        "symbol": "DDD.SZ",
+        "trade_date": "2025-01-06",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "No two-layer combination reached the exit threshold.",
+        "triggered_dimensions": [
+          "market"
+        ],
+        "unknown_dimensions": [],
+        "combination": null,
+        "remaining_dimension": null,
+        "remaining_score": null,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 1.0,
+          "stock": 2.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-06",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "EEE.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-06",
+      "holding_trading_days": 1,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "market_weakening"
+      ],
+      "scheduled_due": false,
+      "event_due": true,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": 553.84,
+      "current_net_return": 0.00309052,
+      "highest_net_return": 0.00309052,
+      "highest_net_return_date": "2025-01-06",
+      "drawdown_from_high": 0.0,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": "2025-01-10",
+      "original_buy_reason": "fixture candidate E · 两层触发评分不足→足5分退出",
+      "market_state": "weakening",
+      "sector_state": "healthy",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: No two-layer combination reached the exit threshold."
+      ],
+      "decision": {
+        "symbol": "EEE.SZ",
+        "trade_date": "2025-01-06",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "No two-layer combination reached the exit threshold.",
+        "triggered_dimensions": [
+          "market"
+        ],
+        "unknown_dimensions": [],
+        "combination": null,
+        "remaining_dimension": null,
+        "remaining_score": null,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 1.0,
+          "stock": 4.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-06",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "AAA.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-10",
+      "holding_trading_days": 5,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "scheduled_periodic"
+      ],
+      "scheduled_due": true,
+      "event_due": false,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": 2475.63,
+      "current_net_return": 0.01377766,
+      "highest_net_return": 0.01377766,
+      "highest_net_return_date": "2025-01-10",
+      "drawdown_from_high": 0.0,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": "2025-01-17",
+      "original_buy_reason": "fixture candidate A · 第二交易日板块事件",
+      "market_state": "weakening",
+      "sector_state": "risk",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: Best evaluated pair market+sector remaining stock=3.0 < 5.0."
+      ],
+      "decision": {
+        "symbol": "AAA.SZ",
+        "trade_date": "2025-01-10",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "Best evaluated pair market+sector remaining stock=3.0 < 5.0.",
+        "triggered_dimensions": [
+          "market",
+          "sector"
+        ],
+        "unknown_dimensions": [],
+        "combination": "market+sector",
+        "remaining_dimension": "stock",
+        "remaining_score": 3.0,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 6.0,
+          "stock": 3.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-10",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "BBB.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-10",
+      "holding_trading_days": 5,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "scheduled_periodic",
+        "sector_risk_change"
+      ],
+      "scheduled_due": true,
+      "event_due": true,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": 1124.63,
+      "current_net_return": 0.0062683,
+      "highest_net_return": 0.0062683,
+      "highest_net_return_date": "2025-01-10",
+      "drawdown_from_high": 0.0,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": "2025-01-17",
+      "original_buy_reason": "fixture candidate B · 第5日定时+事件合并",
+      "market_state": "weakening",
+      "sector_state": "risk",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: Best evaluated pair market+sector remaining stock=2.0 < 5.0."
+      ],
+      "decision": {
+        "symbol": "BBB.SZ",
+        "trade_date": "2025-01-10",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "Best evaluated pair market+sector remaining stock=2.0 < 5.0.",
+        "triggered_dimensions": [
+          "market",
+          "sector"
+        ],
+        "unknown_dimensions": [],
+        "combination": "market+sector",
+        "remaining_dimension": "stock",
+        "remaining_score": 2.0,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 6.0,
+          "stock": 2.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-10",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "CCC.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-10",
+      "holding_trading_days": 5,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "scheduled_periodic"
+      ],
+      "scheduled_due": true,
+      "event_due": false,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": 674.29,
+      "current_net_return": 0.00376014,
+      "highest_net_return": 0.00376014,
+      "highest_net_return_date": "2025-01-06",
+      "drawdown_from_high": 0.0,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": "2025-01-17",
+      "original_buy_reason": "fixture candidate C · 无事件定期复核/停牌unknown",
+      "market_state": "weakening",
+      "sector_state": "healthy",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: No two-layer combination reached the exit threshold."
+      ],
+      "decision": {
+        "symbol": "CCC.SZ",
+        "trade_date": "2025-01-10",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "No two-layer combination reached the exit threshold.",
+        "triggered_dimensions": [
+          "market"
+        ],
+        "unknown_dimensions": [],
+        "combination": null,
+        "remaining_dimension": null,
+        "remaining_score": null,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 1.0,
+          "stock": 2.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-10",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "DDD.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-10",
+      "holding_trading_days": 5,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "scheduled_periodic"
+      ],
+      "scheduled_due": true,
+      "event_due": false,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": 29384.37,
+      "current_net_return": 0.16363306,
+      "highest_net_return": 0.16363306,
+      "highest_net_return_date": "2025-01-10",
+      "drawdown_from_high": 0.0,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": "2025-01-17",
+      "original_buy_reason": "fixture candidate D · 涨超15%不自动卖出",
+      "market_state": "weakening",
+      "sector_state": "healthy",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: No two-layer combination reached the exit threshold."
+      ],
+      "decision": {
+        "symbol": "DDD.SZ",
+        "trade_date": "2025-01-10",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "No two-layer combination reached the exit threshold.",
+        "triggered_dimensions": [
+          "market"
+        ],
+        "unknown_dimensions": [],
+        "combination": null,
+        "remaining_dimension": null,
+        "remaining_score": null,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 1.0,
+          "stock": 2.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-10",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "EEE.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-10",
+      "holding_trading_days": 5,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "scheduled_periodic"
+      ],
+      "scheduled_due": true,
+      "event_due": false,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": 73.84,
+      "current_net_return": 0.00041204,
+      "highest_net_return": 0.00309052,
+      "highest_net_return_date": "2025-01-06",
+      "drawdown_from_high": -0.002678,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": "2025-01-17",
+      "original_buy_reason": "fixture candidate E · 两层触发评分不足→足5分退出",
+      "market_state": "weakening",
+      "sector_state": "healthy",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: No two-layer combination reached the exit threshold."
+      ],
+      "decision": {
+        "symbol": "EEE.SZ",
+        "trade_date": "2025-01-10",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "No two-layer combination reached the exit threshold.",
+        "triggered_dimensions": [
+          "market"
+        ],
+        "unknown_dimensions": [],
+        "combination": null,
+        "remaining_dimension": null,
+        "remaining_score": null,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 1.0,
+          "stock": 4.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-10",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "EEE.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-16",
+      "holding_trading_days": 9,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "sector_risk_change"
+      ],
+      "scheduled_due": false,
+      "event_due": true,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": -406.16,
+      "current_net_return": -0.00226644,
+      "highest_net_return": 0.00309052,
+      "highest_net_return_date": "2025-01-06",
+      "drawdown_from_high": -0.005357,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": "2025-01-17",
+      "original_buy_reason": "fixture candidate E · 两层触发评分不足→足5分退出",
+      "market_state": "weakening",
+      "sector_state": "risk",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: Best evaluated pair market+sector remaining stock=4.0 < 5.0."
+      ],
+      "decision": {
+        "symbol": "EEE.SZ",
+        "trade_date": "2025-01-16",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "Best evaluated pair market+sector remaining stock=4.0 < 5.0.",
+        "triggered_dimensions": [
+          "market",
+          "sector"
+        ],
+        "unknown_dimensions": [],
+        "combination": "market+sector",
+        "remaining_dimension": "stock",
+        "remaining_score": 4.0,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 6.0,
+          "stock": 4.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-16",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "AAA.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-17",
+      "holding_trading_days": 10,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "scheduled_periodic"
+      ],
+      "scheduled_due": true,
+      "event_due": false,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": 4275.63,
+      "current_net_return": 0.02379522,
+      "highest_net_return": 0.02379522,
+      "highest_net_return_date": "2025-01-17",
+      "drawdown_from_high": 0.0,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": "2025-01-24",
+      "original_buy_reason": "fixture candidate A · 第二交易日板块事件",
+      "market_state": "weakening",
+      "sector_state": "risk",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: Best evaluated pair market+sector remaining stock=3.0 < 5.0."
+      ],
+      "decision": {
+        "symbol": "AAA.SZ",
+        "trade_date": "2025-01-17",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "Best evaluated pair market+sector remaining stock=3.0 < 5.0.",
+        "triggered_dimensions": [
+          "market",
+          "sector"
+        ],
+        "unknown_dimensions": [],
+        "combination": "market+sector",
+        "remaining_dimension": "stock",
+        "remaining_score": 3.0,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 6.0,
+          "stock": 3.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-17",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "BBB.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-17",
+      "holding_trading_days": 10,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "scheduled_periodic"
+      ],
+      "scheduled_due": true,
+      "event_due": false,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": 1574.63,
+      "current_net_return": 0.00877645,
+      "highest_net_return": 0.00877645,
+      "highest_net_return_date": "2025-01-17",
+      "drawdown_from_high": 0.0,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": "2025-01-24",
+      "original_buy_reason": "fixture candidate B · 第5日定时+事件合并",
+      "market_state": "weakening",
+      "sector_state": "risk",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: Best evaluated pair market+sector remaining stock=2.0 < 5.0."
+      ],
+      "decision": {
+        "symbol": "BBB.SZ",
+        "trade_date": "2025-01-17",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "Best evaluated pair market+sector remaining stock=2.0 < 5.0.",
+        "triggered_dimensions": [
+          "market",
+          "sector"
+        ],
+        "unknown_dimensions": [],
+        "combination": "market+sector",
+        "remaining_dimension": "stock",
+        "remaining_score": 2.0,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 6.0,
+          "stock": 2.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-17",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "CCC.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-17",
+      "holding_trading_days": 10,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "scheduled_periodic",
+        "data_missing_or_stale"
+      ],
+      "scheduled_due": true,
+      "event_due": true,
+      "conclusion": "not_evaluable",
+      "data_integrity": "stock_quote_unknown",
+      "current_net_pnl": null,
+      "current_net_return": null,
+      "highest_net_return": 0.00376014,
+      "highest_net_return_date": "2025-01-06",
+      "drawdown_from_high": null,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": "2025-01-24",
+      "original_buy_reason": "fixture candidate C · 无事件定期复核/停牌unknown",
+      "market_state": "weakening",
+      "sector_state": "healthy",
+      "financial_state": "pass",
+      "stock_quote_available": false,
+      "hold_reasons": [
+        "not evaluable: data integrity stock_quote_unknown; not a safe pass"
+      ],
+      "decision": {
+        "symbol": "CCC.SZ",
+        "trade_date": "2025-01-17",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "No two-layer combination reached the exit threshold.",
+        "triggered_dimensions": [
+          "market"
+        ],
+        "unknown_dimensions": [],
+        "combination": null,
+        "remaining_dimension": null,
+        "remaining_score": null,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 1.0,
+          "stock": 2.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-17",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "DDD.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-17",
+      "holding_trading_days": 10,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "scheduled_periodic"
+      ],
+      "scheduled_due": true,
+      "event_due": false,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": 62666.15,
+      "current_net_return": 0.34896966,
+      "highest_net_return": 0.34896966,
+      "highest_net_return_date": "2025-01-17",
+      "drawdown_from_high": 0.0,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": "2025-01-24",
+      "original_buy_reason": "fixture candidate D · 涨超15%不自动卖出",
+      "market_state": "weakening",
+      "sector_state": "healthy",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: No two-layer combination reached the exit threshold."
+      ],
+      "decision": {
+        "symbol": "DDD.SZ",
+        "trade_date": "2025-01-17",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "No two-layer combination reached the exit threshold.",
+        "triggered_dimensions": [
+          "market"
+        ],
+        "unknown_dimensions": [],
+        "combination": null,
+        "remaining_dimension": null,
+        "remaining_score": null,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 1.0,
+          "stock": 2.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-17",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "EEE.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-17",
+      "holding_trading_days": 10,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "scheduled_periodic"
+      ],
+      "scheduled_due": true,
+      "event_due": false,
+      "conclusion": "exit_signal",
+      "data_integrity": "complete",
+      "current_net_pnl": -526.16,
+      "current_net_return": -0.00293606,
+      "highest_net_return": 0.00309052,
+      "highest_net_return_date": "2025-01-06",
+      "drawdown_from_high": -0.006027,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": "2025-01-24",
+      "original_buy_reason": "fixture candidate E · 两层触发评分不足→足5分退出",
+      "market_state": "weakening",
+      "sector_state": "risk",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: two-layer rule exit: market+sector remaining stock=5.0"
+      ],
+      "decision": {
+        "symbol": "EEE.SZ",
+        "trade_date": "2025-01-17",
+        "conclusion": "exit_signal",
+        "reason_code": "two_triggered_remaining_score_ge_threshold",
+        "details": "market+sector triggered, remaining stock score 5.0 >= 5.0; exit signal wins over any add suspension.",
+        "triggered_dimensions": [
+          "market",
+          "sector"
+        ],
+        "unknown_dimensions": [],
+        "combination": "market+sector",
+        "remaining_dimension": "stock",
+        "remaining_score": 5.0,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 6.0,
+          "stock": 5.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-17",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "two_layers_plus_remaining_score",
+        "is_exit_signal": true
+      }
+    },
+    {
+      "symbol": "CCC.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-20",
+      "holding_trading_days": 11,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "data_recovered"
+      ],
+      "scheduled_due": false,
+      "event_due": true,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": 674.29,
+      "current_net_return": 0.00376014,
+      "highest_net_return": 0.00376014,
+      "highest_net_return_date": "2025-01-06",
+      "drawdown_from_high": 0.0,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": "2025-01-24",
+      "original_buy_reason": "fixture candidate C · 无事件定期复核/停牌unknown",
+      "market_state": "weakening",
+      "sector_state": "healthy",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: No two-layer combination reached the exit threshold."
+      ],
+      "decision": {
+        "symbol": "CCC.SZ",
+        "trade_date": "2025-01-20",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "No two-layer combination reached the exit threshold.",
+        "triggered_dimensions": [
+          "market"
+        ],
+        "unknown_dimensions": [],
+        "combination": null,
+        "remaining_dimension": null,
+        "remaining_score": null,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 1.0,
+          "stock": 2.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-20",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "AAA.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-24",
+      "holding_trading_days": 15,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "scheduled_periodic"
+      ],
+      "scheduled_due": true,
+      "event_due": false,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": 6075.63,
+      "current_net_return": 0.03381279,
+      "highest_net_return": 0.03381279,
+      "highest_net_return_date": "2025-01-24",
+      "drawdown_from_high": 0.0,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": null,
+      "original_buy_reason": "fixture candidate A · 第二交易日板块事件",
+      "market_state": "weakening",
+      "sector_state": "risk",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: Best evaluated pair market+sector remaining stock=3.0 < 5.0."
+      ],
+      "decision": {
+        "symbol": "AAA.SZ",
+        "trade_date": "2025-01-24",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "Best evaluated pair market+sector remaining stock=3.0 < 5.0.",
+        "triggered_dimensions": [
+          "market",
+          "sector"
+        ],
+        "unknown_dimensions": [],
+        "combination": "market+sector",
+        "remaining_dimension": "stock",
+        "remaining_score": 3.0,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 6.0,
+          "stock": 3.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-24",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "BBB.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-24",
+      "holding_trading_days": 15,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "scheduled_periodic"
+      ],
+      "scheduled_due": true,
+      "event_due": false,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": -8415.37,
+      "current_net_return": -0.0469044,
+      "highest_net_return": 0.00977971,
+      "highest_net_return_date": "2025-01-21",
+      "drawdown_from_high": -0.056684,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": null,
+      "original_buy_reason": "fixture candidate B · 第5日定时+事件合并",
+      "market_state": "weakening",
+      "sector_state": "risk",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: Best evaluated pair market+sector remaining stock=2.0 < 5.0."
+      ],
+      "decision": {
+        "symbol": "BBB.SZ",
+        "trade_date": "2025-01-24",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "Best evaluated pair market+sector remaining stock=2.0 < 5.0.",
+        "triggered_dimensions": [
+          "market",
+          "sector"
+        ],
+        "unknown_dimensions": [],
+        "combination": "market+sector",
+        "remaining_dimension": "stock",
+        "remaining_score": 2.0,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 6.0,
+          "stock": 2.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-24",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "CCC.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-24",
+      "holding_trading_days": 15,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "scheduled_periodic"
+      ],
+      "scheduled_due": true,
+      "event_due": false,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": 674.29,
+      "current_net_return": 0.00376014,
+      "highest_net_return": 0.00376014,
+      "highest_net_return_date": "2025-01-06",
+      "drawdown_from_high": 0.0,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": null,
+      "original_buy_reason": "fixture candidate C · 无事件定期复核/停牌unknown",
+      "market_state": "weakening",
+      "sector_state": "healthy",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: No two-layer combination reached the exit threshold."
+      ],
+      "decision": {
+        "symbol": "CCC.SZ",
+        "trade_date": "2025-01-24",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "No two-layer combination reached the exit threshold.",
+        "triggered_dimensions": [
+          "market"
+        ],
+        "unknown_dimensions": [],
+        "combination": null,
+        "remaining_dimension": null,
+        "remaining_score": null,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 1.0,
+          "stock": 2.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-24",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    },
+    {
+      "symbol": "DDD.SZ",
+      "cycle_id": 1,
+      "review_date": "2025-01-24",
+      "holding_trading_days": 15,
+      "entry_fill_date": "2025-01-03",
+      "triggers": [
+        "scheduled_periodic"
+      ],
+      "scheduled_due": true,
+      "event_due": false,
+      "conclusion": "hold",
+      "data_integrity": "complete",
+      "current_net_pnl": 101248.84,
+      "current_net_return": 0.5638255,
+      "highest_net_return": 0.5638255,
+      "highest_net_return_date": "2025-01-24",
+      "drawdown_from_high": 0.0,
+      "expectation_status": "pending_definition",
+      "next_scheduled_review_date": null,
+      "original_buy_reason": "fixture candidate D · 涨超15%不自动卖出",
+      "market_state": "weakening",
+      "sector_state": "healthy",
+      "financial_state": "pass",
+      "stock_quote_available": true,
+      "hold_reasons": [
+        "not evaluable: No two-layer combination reached the exit threshold."
+      ],
+      "decision": {
+        "symbol": "DDD.SZ",
+        "trade_date": "2025-01-24",
+        "conclusion": "hold",
+        "reason_code": "hold_no_exit_condition",
+        "details": "No two-layer combination reached the exit threshold.",
+        "triggered_dimensions": [
+          "market"
+        ],
+        "unknown_dimensions": [],
+        "combination": null,
+        "remaining_dimension": null,
+        "remaining_score": null,
+        "threshold": 5.0,
+        "scores": {
+          "market": 7.0,
+          "sector": 1.0,
+          "stock": 2.0
+        },
+        "score_source": "fixture",
+        "score_config_id": "fixture_scores_p2_v1",
+        "data_as_of": "2025-01-24",
+        "missing_reasons": {},
+        "add_suspension_policy_id": null,
+        "logic_path": "hold",
+        "is_exit_signal": false
+      }
+    }
+  ],
+  "daily": [
+    {
+      "trade_date": "2025-01-02",
+      "cash": 1000000.0,
+      "market_value": 0.0,
+      "equity": 1000000.0,
+      "total_return": 0.0,
+      "occupied_seats": 5,
+      "occupied_symbols": {
+        "AAA.SZ": "reserved_buy",
+        "BBB.SZ": "reserved_buy",
+        "CCC.SZ": "reserved_buy",
+        "DDD.SZ": "reserved_buy",
+        "EEE.SZ": "reserved_buy"
+      },
+      "distinct_exposure_symbols": [
+        "AAA.SZ",
+        "BBB.SZ",
+        "CCC.SZ",
+        "DDD.SZ",
+        "EEE.SZ"
+      ],
+      "wait_queue": [
+        "FFF.SZ"
+      ],
+      "fees_cumulative": 0.0,
+      "realized_pnl_cumulative": 0.0,
+      "checks": {
+        "seats_within_limit": true,
+        "distinct_symbols_within_limit": true,
+        "seat_manager_matches_distinct_symbols": true,
+        "cash_non_negative": true,
+        "asset_identity": true,
+        "fees_ledger_matches_fills": true,
+        "realized_pnl_matches_sell_fills": true,
+        "max_seats": 5
+      },
+      "executions": [],
+      "reviews": []
+    },
+    {
+      "trade_date": "2025-01-03",
+      "cash": 102793.61,
+      "market_value": 900580.0,
+      "equity": 1003373.61,
+      "total_return": 0.00337361,
+      "occupied_seats": 5,
+      "occupied_symbols": {
+        "AAA.SZ": "held",
+        "BBB.SZ": "held",
+        "CCC.SZ": "held",
+        "DDD.SZ": "held",
+        "EEE.SZ": "held"
+      },
+      "distinct_exposure_symbols": [
+        "AAA.SZ",
+        "BBB.SZ",
+        "CCC.SZ",
+        "DDD.SZ",
+        "EEE.SZ"
+      ],
+      "wait_queue": [
+        "FFF.SZ"
+      ],
+      "fees_cumulative": 233.21,
+      "realized_pnl_cumulative": 0.0,
+      "checks": {
+        "seats_within_limit": true,
+        "distinct_symbols_within_limit": true,
+        "seat_manager_matches_distinct_symbols": true,
+        "cash_non_negative": true,
+        "asset_identity": true,
+        "fees_ledger_matches_fills": true,
+        "realized_pnl_matches_sell_fills": true,
+        "max_seats": 5
+      },
+      "executions": [
+        {
+          "order_id": "ord-0001",
+          "symbol": "AAA.SZ",
+          "side": "buy",
+          "status": "filled",
+          "filled_quantity": 18000,
+          "order_filled_total": 18000,
+          "order_remaining": 0,
+          "fill": {
+            "fill_date": "2025-01-03",
+            "quantity": 18000,
+            "raw_open": 9.9699,
+            "fill_price": 9.9798699,
+            "notional": 179637.66,
+            "commission": 44.91,
+            "transfer_fee": 1.8,
+            "stamp_tax": 0.0,
+            "total_fees": 46.71,
+            "total_cost": 179684.37,
+            "price_channel": "raw_open_with_slippage"
+          },
+          "cash_change": -179684.37
+        },
+        {
+          "order_id": "ord-0002",
+          "symbol": "BBB.SZ",
+          "side": "buy",
+          "status": "filled",
+          "filled_quantity": 9000,
+          "order_filled_total": 9000,
+          "order_remaining": 0,
+          "fill": {
+            "fill_date": "2025-01-03",
+            "quantity": 9000,
+            "raw_open": 19.90995,
+            "fill_price": 19.92985995,
+            "notional": 179368.74,
+            "commission": 44.84,
+            "transfer_fee": 1.79,
+            "stamp_tax": 0.0,
+            "total_fees": 46.63,
+            "total_cost": 179415.37,
+            "price_channel": "raw_open_with_slippage"
+          },
+          "cash_change": -179415.37
+        },
+        {
+          "order_id": "ord-0003",
+          "symbol": "CCC.SZ",
+          "side": "buy",
+          "status": "filled",
+          "filled_quantity": 6000,
+          "order_filled_total": 6000,
+          "order_remaining": 0,
+          "fill": {
+            "fill_date": "2025-01-03",
+            "quantity": 6000,
+            "raw_open": 29.85,
+            "fill_price": 29.87985,
+            "notional": 179279.1,
+            "commission": 44.82,
+            "transfer_fee": 1.79,
+            "stamp_tax": 0.0,
+            "total_fees": 46.61,
+            "total_cost": 179325.71,
+            "price_channel": "raw_open_with_slippage"
+          },
+          "cash_change": -179325.71
+        },
+        {
+          "order_id": "ord-0004",
+          "symbol": "DDD.SZ",
+          "side": "buy",
+          "status": "filled",
+          "filled_quantity": 17500,
+          "order_filled_total": 17500,
+          "order_remaining": 0,
+          "fill": {
+            "fill_date": "2025-01-03",
+            "quantity": 17500,
+            "raw_open": 10.2485,
+            "fill_price": 10.2587485,
+            "notional": 179528.1,
+            "commission": 44.88,
+            "transfer_fee": 1.8,
+            "stamp_tax": 0.0,
+            "total_fees": 46.68,
+            "total_cost": 179574.78,
+            "price_channel": "raw_open_with_slippage"
+          },
+          "cash_change": -179574.78
+        },
+        {
+          "order_id": "ord-0005",
+          "symbol": "EEE.SZ",
+          "side": "buy",
+          "status": "filled",
+          "filled_quantity": 12000,
+          "order_filled_total": 12000,
+          "order_remaining": 0,
+          "fill": {
+            "fill_date": "2025-01-03",
+            "quantity": 12000,
+            "raw_open": 14.91505,
+            "fill_price": 14.92996505,
+            "notional": 179159.58,
+            "commission": 44.79,
+            "transfer_fee": 1.79,
+            "stamp_tax": 0.0,
+            "total_fees": 46.58,
+            "total_cost": 179206.16,
+            "price_channel": "raw_open_with_slippage"
+          },
+          "cash_change": -179206.16
+        }
+      ],
+      "reviews": []
+    },
+    {
+      "trade_date": "2025-01-06",
+      "cash": 102793.61,
+      "market_value": 906317.5,
+      "equity": 1009111.11,
+      "total_return": 0.00911111,
+      "occupied_seats": 5,
+      "occupied_symbols": {
+        "AAA.SZ": "held",
+        "BBB.SZ": "held",
+        "CCC.SZ": "held",
+        "DDD.SZ": "held",
+        "EEE.SZ": "held"
+      },
+      "distinct_exposure_symbols": [
+        "AAA.SZ",
+        "BBB.SZ",
+        "CCC.SZ",
+        "DDD.SZ",
+        "EEE.SZ"
+      ],
+      "wait_queue": [
+        "FFF.SZ"
+      ],
+      "fees_cumulative": 233.21,
+      "realized_pnl_cumulative": 0.0,
+      "checks": {
+        "seats_within_limit": true,
+        "distinct_symbols_within_limit": true,
+        "seat_manager_matches_distinct_symbols": true,
+        "cash_non_negative": true,
+        "asset_identity": true,
+        "fees_ledger_matches_fills": true,
+        "realized_pnl_matches_sell_fills": true,
+        "max_seats": 5
+      },
+      "executions": [],
+      "reviews": [
+        {
+          "symbol": "AAA.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "market_weakening",
+            "sector_risk_change"
+          ],
+          "holding_trading_days": 1
+        },
+        {
+          "symbol": "BBB.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "market_weakening"
+          ],
+          "holding_trading_days": 1
+        },
+        {
+          "symbol": "CCC.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "market_weakening"
+          ],
+          "holding_trading_days": 1
+        },
+        {
+          "symbol": "DDD.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "market_weakening"
+          ],
+          "holding_trading_days": 1
+        },
+        {
+          "symbol": "EEE.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "market_weakening"
+          ],
+          "holding_trading_days": 1
+        }
+      ]
+    },
+    {
+      "trade_date": "2025-01-07",
+      "cash": 102793.61,
+      "market_value": 912217.23,
+      "equity": 1015010.84,
+      "total_return": 0.01501084,
+      "occupied_seats": 5,
+      "occupied_symbols": {
+        "AAA.SZ": "held",
+        "BBB.SZ": "held",
+        "CCC.SZ": "held",
+        "DDD.SZ": "held",
+        "EEE.SZ": "held"
+      },
+      "distinct_exposure_symbols": [
+        "AAA.SZ",
+        "BBB.SZ",
+        "CCC.SZ",
+        "DDD.SZ",
+        "EEE.SZ"
+      ],
+      "wait_queue": [
+        "FFF.SZ"
+      ],
+      "fees_cumulative": 233.21,
+      "realized_pnl_cumulative": 0.0,
+      "checks": {
+        "seats_within_limit": true,
+        "distinct_symbols_within_limit": true,
+        "seat_manager_matches_distinct_symbols": true,
+        "cash_non_negative": true,
+        "asset_identity": true,
+        "fees_ledger_matches_fills": true,
+        "realized_pnl_matches_sell_fills": true,
+        "max_seats": 5
+      },
+      "executions": [],
+      "reviews": []
+    },
+    {
+      "trade_date": "2025-01-08",
+      "cash": 102793.61,
+      "market_value": 918284.04,
+      "equity": 1021077.65,
+      "total_return": 0.02107765,
+      "occupied_seats": 5,
+      "occupied_symbols": {
+        "AAA.SZ": "held",
+        "BBB.SZ": "held",
+        "CCC.SZ": "held",
+        "DDD.SZ": "held",
+        "EEE.SZ": "held"
+      },
+      "distinct_exposure_symbols": [
+        "AAA.SZ",
+        "BBB.SZ",
+        "CCC.SZ",
+        "DDD.SZ",
+        "EEE.SZ"
+      ],
+      "wait_queue": [
+        "FFF.SZ"
+      ],
+      "fees_cumulative": 233.21,
+      "realized_pnl_cumulative": 0.0,
+      "checks": {
+        "seats_within_limit": true,
+        "distinct_symbols_within_limit": true,
+        "seat_manager_matches_distinct_symbols": true,
+        "cash_non_negative": true,
+        "asset_identity": true,
+        "fees_ledger_matches_fills": true,
+        "realized_pnl_matches_sell_fills": true,
+        "max_seats": 5
+      },
+      "executions": [],
+      "reviews": []
+    },
+    {
+      "trade_date": "2025-01-09",
+      "cash": 102793.61,
+      "market_value": 924522.97,
+      "equity": 1027316.58,
+      "total_return": 0.02731658,
+      "occupied_seats": 5,
+      "occupied_symbols": {
+        "AAA.SZ": "held",
+        "BBB.SZ": "held",
+        "CCC.SZ": "held",
+        "DDD.SZ": "held",
+        "EEE.SZ": "held"
+      },
+      "distinct_exposure_symbols": [
+        "AAA.SZ",
+        "BBB.SZ",
+        "CCC.SZ",
+        "DDD.SZ",
+        "EEE.SZ"
+      ],
+      "wait_queue": [
+        "FFF.SZ"
+      ],
+      "fees_cumulative": 233.21,
+      "realized_pnl_cumulative": 0.0,
+      "checks": {
+        "seats_within_limit": true,
+        "distinct_symbols_within_limit": true,
+        "seat_manager_matches_distinct_symbols": true,
+        "cash_non_negative": true,
+        "asset_identity": true,
+        "fees_ledger_matches_fills": true,
+        "realized_pnl_matches_sell_fills": true,
+        "max_seats": 5
+      },
+      "executions": [],
+      "reviews": []
+    },
+    {
+      "trade_date": "2025-01-10",
+      "cash": 102793.61,
+      "market_value": 930939.15,
+      "equity": 1033732.76,
+      "total_return": 0.03373276,
+      "occupied_seats": 5,
+      "occupied_symbols": {
+        "AAA.SZ": "held",
+        "BBB.SZ": "held",
+        "CCC.SZ": "held",
+        "DDD.SZ": "held",
+        "EEE.SZ": "held"
+      },
+      "distinct_exposure_symbols": [
+        "AAA.SZ",
+        "BBB.SZ",
+        "CCC.SZ",
+        "DDD.SZ",
+        "EEE.SZ"
+      ],
+      "wait_queue": [
+        "FFF.SZ"
+      ],
+      "fees_cumulative": 233.21,
+      "realized_pnl_cumulative": 0.0,
+      "checks": {
+        "seats_within_limit": true,
+        "distinct_symbols_within_limit": true,
+        "seat_manager_matches_distinct_symbols": true,
+        "cash_non_negative": true,
+        "asset_identity": true,
+        "fees_ledger_matches_fills": true,
+        "realized_pnl_matches_sell_fills": true,
+        "max_seats": 5
+      },
+      "executions": [],
+      "reviews": [
+        {
+          "symbol": "AAA.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "scheduled_periodic"
+          ],
+          "holding_trading_days": 5
+        },
+        {
+          "symbol": "BBB.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "scheduled_periodic",
+            "sector_risk_change"
+          ],
+          "holding_trading_days": 5
+        },
+        {
+          "symbol": "CCC.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "scheduled_periodic"
+          ],
+          "holding_trading_days": 5
+        },
+        {
+          "symbol": "DDD.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "scheduled_periodic"
+          ],
+          "holding_trading_days": 5
+        },
+        {
+          "symbol": "EEE.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "scheduled_periodic"
+          ],
+          "holding_trading_days": 5
+        }
+      ]
+    },
+    {
+      "trade_date": "2025-01-13",
+      "cash": 102793.61,
+      "market_value": 937537.93,
+      "equity": 1040331.54,
+      "total_return": 0.04033154,
+      "occupied_seats": 5,
+      "occupied_symbols": {
+        "AAA.SZ": "held",
+        "BBB.SZ": "held",
+        "CCC.SZ": "held",
+        "DDD.SZ": "held",
+        "EEE.SZ": "held"
+      },
+      "distinct_exposure_symbols": [
+        "AAA.SZ",
+        "BBB.SZ",
+        "CCC.SZ",
+        "DDD.SZ",
+        "EEE.SZ"
+      ],
+      "wait_queue": [
+        "FFF.SZ"
+      ],
+      "fees_cumulative": 233.21,
+      "realized_pnl_cumulative": 0.0,
+      "checks": {
+        "seats_within_limit": true,
+        "distinct_symbols_within_limit": true,
+        "seat_manager_matches_distinct_symbols": true,
+        "cash_non_negative": true,
+        "asset_identity": true,
+        "fees_ledger_matches_fills": true,
+        "realized_pnl_matches_sell_fills": true,
+        "max_seats": 5
+      },
+      "executions": [],
+      "reviews": []
+    },
+    {
+      "trade_date": "2025-01-14",
+      "cash": 102793.61,
+      "market_value": 944324.77,
+      "equity": 1047118.38,
+      "total_return": 0.04711838,
+      "occupied_seats": 5,
+      "occupied_symbols": {
+        "AAA.SZ": "held",
+        "BBB.SZ": "held",
+        "CCC.SZ": "held",
+        "DDD.SZ": "held",
+        "EEE.SZ": "held"
+      },
+      "distinct_exposure_symbols": [
+        "AAA.SZ",
+        "BBB.SZ",
+        "CCC.SZ",
+        "DDD.SZ",
+        "EEE.SZ"
+      ],
+      "wait_queue": [
+        "FFF.SZ"
+      ],
+      "fees_cumulative": 233.21,
+      "realized_pnl_cumulative": 0.0,
+      "checks": {
+        "seats_within_limit": true,
+        "distinct_symbols_within_limit": true,
+        "seat_manager_matches_distinct_symbols": true,
+        "cash_non_negative": true,
+        "asset_identity": true,
+        "fees_ledger_matches_fills": true,
+        "realized_pnl_matches_sell_fills": true,
+        "max_seats": 5
+      },
+      "executions": [],
+      "reviews": []
+    },
+    {
+      "trade_date": "2025-01-15",
+      "cash": 102793.61,
+      "market_value": 951305.31,
+      "equity": 1054098.92,
+      "total_return": 0.05409892,
+      "occupied_seats": 5,
+      "occupied_symbols": {
+        "AAA.SZ": "held",
+        "BBB.SZ": "held",
+        "CCC.SZ": "held",
+        "DDD.SZ": "held",
+        "EEE.SZ": "held"
+      },
+      "distinct_exposure_symbols": [
+        "AAA.SZ",
+        "BBB.SZ",
+        "CCC.SZ",
+        "DDD.SZ",
+        "EEE.SZ"
+      ],
+      "wait_queue": [
+        "FFF.SZ"
+      ],
+      "fees_cumulative": 233.21,
+      "realized_pnl_cumulative": 0.0,
+      "checks": {
+        "seats_within_limit": true,
+        "distinct_symbols_within_limit": true,
+        "seat_manager_matches_distinct_symbols": true,
+        "cash_non_negative": true,
+        "asset_identity": true,
+        "fees_ledger_matches_fills": true,
+        "realized_pnl_matches_sell_fills": true,
+        "max_seats": 5
+      },
+      "executions": [],
+      "reviews": []
+    },
+    {
+      "trade_date": "2025-01-16",
+      "cash": 102793.61,
+      "market_value": 958485.37,
+      "equity": 1061278.98,
+      "total_return": 0.06127898,
+      "occupied_seats": 5,
+      "occupied_symbols": {
+        "AAA.SZ": "held",
+        "BBB.SZ": "held",
+        "CCC.SZ": "held",
+        "DDD.SZ": "held",
+        "EEE.SZ": "held"
+      },
+      "distinct_exposure_symbols": [
+        "AAA.SZ",
+        "BBB.SZ",
+        "CCC.SZ",
+        "DDD.SZ",
+        "EEE.SZ"
+      ],
+      "wait_queue": [
+        "FFF.SZ"
+      ],
+      "fees_cumulative": 233.21,
+      "realized_pnl_cumulative": 0.0,
+      "checks": {
+        "seats_within_limit": true,
+        "distinct_symbols_within_limit": true,
+        "seat_manager_matches_distinct_symbols": true,
+        "cash_non_negative": true,
+        "asset_identity": true,
+        "fees_ledger_matches_fills": true,
+        "realized_pnl_matches_sell_fills": true,
+        "max_seats": 5
+      },
+      "executions": [],
+      "reviews": [
+        {
+          "symbol": "EEE.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "sector_risk_change"
+          ],
+          "holding_trading_days": 9
+        }
+      ]
+    },
+    {
+      "trade_date": "2025-01-17",
+      "cash": 102793.61,
+      "market_value": 965870.93,
+      "equity": 1068664.54,
+      "total_return": 0.06866454,
+      "occupied_seats": 5,
+      "occupied_symbols": {
+        "AAA.SZ": "held",
+        "BBB.SZ": "held",
+        "CCC.SZ": "held",
+        "DDD.SZ": "held",
+        "EEE.SZ": "pending_sell"
+      },
+      "distinct_exposure_symbols": [
+        "AAA.SZ",
+        "BBB.SZ",
+        "CCC.SZ",
+        "DDD.SZ",
+        "EEE.SZ"
+      ],
+      "wait_queue": [
+        "FFF.SZ"
+      ],
+      "fees_cumulative": 233.21,
+      "realized_pnl_cumulative": 0.0,
+      "checks": {
+        "seats_within_limit": true,
+        "distinct_symbols_within_limit": true,
+        "seat_manager_matches_distinct_symbols": true,
+        "cash_non_negative": true,
+        "asset_identity": true,
+        "fees_ledger_matches_fills": true,
+        "realized_pnl_matches_sell_fills": true,
+        "max_seats": 5
+      },
+      "executions": [],
+      "reviews": [
+        {
+          "symbol": "AAA.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "scheduled_periodic"
+          ],
+          "holding_trading_days": 10
+        },
+        {
+          "symbol": "BBB.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "scheduled_periodic"
+          ],
+          "holding_trading_days": 10
+        },
+        {
+          "symbol": "CCC.SZ",
+          "conclusion": "not_evaluable",
+          "triggers": [
+            "scheduled_periodic",
+            "data_missing_or_stale"
+          ],
+          "holding_trading_days": 10
+        },
+        {
+          "symbol": "DDD.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "scheduled_periodic"
+          ],
+          "holding_trading_days": 10
+        },
+        {
+          "symbol": "EEE.SZ",
+          "conclusion": "exit_signal",
+          "triggers": [
+            "scheduled_periodic"
+          ],
+          "holding_trading_days": 10
+        }
+      ]
+    },
+    {
+      "trade_date": "2025-01-20",
+      "cash": 102793.61,
+      "market_value": 973468.16,
+      "equity": 1076261.77,
+      "total_return": 0.07626177,
+      "occupied_seats": 5,
+      "occupied_symbols": {
+        "AAA.SZ": "held",
+        "BBB.SZ": "held",
+        "CCC.SZ": "held",
+        "DDD.SZ": "held",
+        "EEE.SZ": "pending_sell"
+      },
+      "distinct_exposure_symbols": [
+        "AAA.SZ",
+        "BBB.SZ",
+        "CCC.SZ",
+        "DDD.SZ",
+        "EEE.SZ"
+      ],
+      "wait_queue": [
+        "FFF.SZ"
+      ],
+      "fees_cumulative": 233.21,
+      "realized_pnl_cumulative": 0.0,
+      "checks": {
+        "seats_within_limit": true,
+        "distinct_symbols_within_limit": true,
+        "seat_manager_matches_distinct_symbols": true,
+        "cash_non_negative": true,
+        "asset_identity": true,
+        "fees_ledger_matches_fills": true,
+        "realized_pnl_matches_sell_fills": true,
+        "max_seats": 5
+      },
+      "executions": [
+        {
+          "order_id": "ord-0007",
+          "symbol": "EEE.SZ",
+          "side": "sell",
+          "status": "not_filled",
+          "reason": "fixture_sell_not_filled_no_counterparty",
+          "seat_released": false
+        }
+      ],
+      "reviews": [
+        {
+          "symbol": "CCC.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "data_recovered"
+          ],
+          "holding_trading_days": 11
+        }
+      ]
+    },
+    {
+      "trade_date": "2025-01-21",
+      "cash": 191366.99,
+      "market_value": 892063.4,
+      "equity": 1083430.39,
+      "total_return": 0.08343039,
+      "occupied_seats": 5,
+      "occupied_symbols": {
+        "AAA.SZ": "held",
+        "BBB.SZ": "held",
+        "CCC.SZ": "held",
+        "DDD.SZ": "held",
+        "EEE.SZ": "pending_sell"
+      },
+      "distinct_exposure_symbols": [
+        "AAA.SZ",
+        "BBB.SZ",
+        "CCC.SZ",
+        "DDD.SZ",
+        "EEE.SZ"
+      ],
+      "wait_queue": [
+        "FFF.SZ"
+      ],
+      "fees_cumulative": 344.96,
+      "realized_pnl_cumulative": -1029.7,
+      "checks": {
+        "seats_within_limit": true,
+        "distinct_symbols_within_limit": true,
+        "seat_manager_matches_distinct_symbols": true,
+        "cash_non_negative": true,
+        "asset_identity": true,
+        "fees_ledger_matches_fills": true,
+        "realized_pnl_matches_sell_fills": true,
+        "max_seats": 5
+      },
+      "executions": [
+        {
+          "order_id": "ord-0007",
+          "symbol": "EEE.SZ",
+          "side": "sell",
+          "status": "partial",
+          "filled_quantity": 6000,
+          "order_filled_total": 6000,
+          "order_remaining": 6000,
+          "fill": {
+            "fill_date": "2025-01-21",
+            "quantity": 6000,
+            "raw_open": 14.79565,
+            "fill_price": 14.78085435,
+            "notional": 88685.13,
+            "commission": 22.17,
+            "transfer_fee": 0.89,
+            "stamp_tax": 88.69,
+            "total_fees": 111.75,
+            "net_proceeds": 88573.38,
+            "matched_cost": 89603.08,
+            "net_pnl": -1029.7,
+            "matched_lots": [
+              {
+                "buy_date": "2025-01-03",
+                "quantity": 6000,
+                "fill_price": 14.92996505,
+                "fee_per_share": 0.0038816667,
+                "cycle_id": 1
+              }
+            ],
+            "price_channel": "raw_open_with_slippage"
+          },
+          "cash_change": 88573.38
+        }
+      ],
+      "reviews": []
+    },
+    {
+      "trade_date": "2025-01-22",
+      "cash": 279880.8,
+      "market_value": 800743.2,
+      "equity": 1080624.0,
+      "total_return": 0.080624,
+      "occupied_seats": 4,
+      "occupied_symbols": {
+        "AAA.SZ": "held",
+        "BBB.SZ": "held",
+        "CCC.SZ": "held",
+        "DDD.SZ": "held"
+      },
+      "distinct_exposure_symbols": [
+        "AAA.SZ",
+        "BBB.SZ",
+        "CCC.SZ",
+        "DDD.SZ"
+      ],
+      "wait_queue": [
+        "FFF.SZ"
+      ],
+      "fees_cumulative": 456.64,
+      "realized_pnl_cumulative": -2118.97,
+      "checks": {
+        "seats_within_limit": true,
+        "distinct_symbols_within_limit": true,
+        "seat_manager_matches_distinct_symbols": true,
+        "cash_non_negative": true,
+        "asset_identity": true,
+        "fees_ledger_matches_fills": true,
+        "realized_pnl_matches_sell_fills": true,
+        "max_seats": 5
+      },
+      "executions": [
+        {
+          "order_id": "ord-0007",
+          "symbol": "EEE.SZ",
+          "side": "sell",
+          "status": "filled",
+          "filled_quantity": 6000,
+          "order_filled_total": 12000,
+          "order_remaining": 0,
+          "fill": {
+            "fill_date": "2025-01-22",
+            "quantity": 6000,
+            "raw_open": 14.7857,
+            "fill_price": 14.7709143,
+            "notional": 88625.49,
+            "commission": 22.16,
+            "transfer_fee": 0.89,
+            "stamp_tax": 88.63,
+            "total_fees": 111.68,
+            "net_proceeds": 88513.81,
+            "matched_cost": 89603.08,
+            "net_pnl": -1089.27,
+            "matched_lots": [
+              {
+                "buy_date": "2025-01-03",
+                "quantity": 6000,
+                "fill_price": 14.92996505,
+                "fee_per_share": 0.0038816667,
+                "cycle_id": 1
+              }
+            ],
+            "price_channel": "raw_open_with_slippage"
+          },
+          "cash_change": 88513.81
+        }
+      ],
+      "reviews": []
+    },
+    {
+      "trade_date": "2025-01-23",
+      "cash": 279880.8,
+      "market_value": 809044.3,
+      "equity": 1088925.1,
+      "total_return": 0.0889251,
+      "occupied_seats": 4,
+      "occupied_symbols": {
+        "AAA.SZ": "held",
+        "BBB.SZ": "held",
+        "CCC.SZ": "held",
+        "DDD.SZ": "held"
+      },
+      "distinct_exposure_symbols": [
+        "AAA.SZ",
+        "BBB.SZ",
+        "CCC.SZ",
+        "DDD.SZ"
+      ],
+      "wait_queue": [
+        "FFF.SZ"
+      ],
+      "fees_cumulative": 456.64,
+      "realized_pnl_cumulative": -2118.97,
+      "checks": {
+        "seats_within_limit": true,
+        "distinct_symbols_within_limit": true,
+        "seat_manager_matches_distinct_symbols": true,
+        "cash_non_negative": true,
+        "asset_identity": true,
+        "fees_ledger_matches_fills": true,
+        "realized_pnl_matches_sell_fills": true,
+        "max_seats": 5
+      },
+      "executions": [],
+      "reviews": []
+    },
+    {
+      "trade_date": "2025-01-24",
+      "cash": 279880.8,
+      "market_value": 817583.62,
+      "equity": 1097464.42,
+      "total_return": 0.09746442,
+      "occupied_seats": 4,
+      "occupied_symbols": {
+        "AAA.SZ": "held",
+        "BBB.SZ": "held",
+        "CCC.SZ": "held",
+        "DDD.SZ": "held"
+      },
+      "distinct_exposure_symbols": [
+        "AAA.SZ",
+        "BBB.SZ",
+        "CCC.SZ",
+        "DDD.SZ"
+      ],
+      "wait_queue": [
+        "FFF.SZ"
+      ],
+      "fees_cumulative": 456.64,
+      "realized_pnl_cumulative": -2118.97,
+      "checks": {
+        "seats_within_limit": true,
+        "distinct_symbols_within_limit": true,
+        "seat_manager_matches_distinct_symbols": true,
+        "cash_non_negative": true,
+        "asset_identity": true,
+        "fees_ledger_matches_fills": true,
+        "realized_pnl_matches_sell_fills": true,
+        "max_seats": 5
+      },
+      "executions": [],
+      "reviews": [
+        {
+          "symbol": "AAA.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "scheduled_periodic"
+          ],
+          "holding_trading_days": 15
+        },
+        {
+          "symbol": "BBB.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "scheduled_periodic"
+          ],
+          "holding_trading_days": 15
+        },
+        {
+          "symbol": "CCC.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "scheduled_periodic"
+          ],
+          "holding_trading_days": 15
+        },
+        {
+          "symbol": "DDD.SZ",
+          "conclusion": "hold",
+          "triggers": [
+            "scheduled_periodic"
+          ],
+          "holding_trading_days": 15
+        }
+      ]
+    }
+  ],
+  "wait_queue": [
+    {
+      "symbol": "FFF.SZ",
+      "priority": 5,
+      "queued_reason": "Seat limit reached (5), no wait queue enabled",
+      "promotion_attempts": 3,
+      "reject_history": [
+        {
+          "trade_date": "2025-01-22",
+          "reason": "promotion_permission_rejected",
+          "details": [
+            "market_weakening_not_allowed"
+          ]
+        },
+        {
+          "trade_date": "2025-01-23",
+          "reason": "promotion_permission_rejected",
+          "details": [
+            "market_weakening_not_allowed"
+          ]
+        },
+        {
+          "trade_date": "2025-01-24",
+          "reason": "promotion_permission_rejected",
+          "details": [
+            "market_weakening_not_allowed"
+          ]
+        }
+      ],
+      "served": false
+    }
+  ],
+  "fee_schedule": {
+    "schedule_id": "fixture_fee_schedule_p2_v1",
+    "fingerprint": "da55dd6929d58daf49b3c3836a333469903568920f63fb11fbd09df1711a6989",
+    "commission_pct": 0.00025,
+    "min_commission": 5.0,
+    "stamp_tax_pct": 0.001,
+    "transfer_fee_pct": 1e-05,
+    "slippage_pct": 0.001,
+    "source_note": "fixture parameters mirror the design document defaults; broker agreement not verified"
+  },
+  "price_channels": {
+    "execution": "raw_open_with_slippage",
+    "valuation": "raw_close",
+    "features": "adjusted_close"
+  },
+  "display_names": {
+    "AAA.SZ": "A · 第二交易日板块事件",
+    "BBB.SZ": "B · 第5日定时+事件合并",
+    "CCC.SZ": "C · 无事件定期复核/停牌unknown",
+    "DDD.SZ": "D · 涨超15%不自动卖出",
+    "EEE.SZ": "E · 两层触发评分不足→足5分退出",
+    "FFF.SZ": "F · 满仓等待的第6只候选"
+  }
+}
