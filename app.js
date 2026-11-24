@@ -13,6 +13,7 @@
     const FEEDBACK_SCHEMA_VERSION = '2.2';
     const FEEDBACK_STORAGE_KEY = 'goldone_feedback';
     const EXPERIMENT_STORAGE_KEY = 'goldone_experiment';
+    const TRADES_RANGE_STORAGE_KEY = 'goldone_trades_range';
 
     const EXPERIMENT_DEFS = [
         { id: 'original_C_baseline', implementation: 'original', group: 'C' },
@@ -103,8 +104,9 @@
         theme: 'light',
         feedback: [],
         filters: {
-            trades: { experiment: '', side: '', reason: '', dateFrom: '', dateTo: '', symbol: '' }
+            trades: { experiment: '', side: '', reason: '', pnl: '', symbol: '' }
         },
+        tradesRange: { preset: 'full', dateFrom: '', dateTo: '' },
         pagination: {
             trades: { page: 1, pageSize: 50 }
         },
@@ -450,14 +452,19 @@
         const tradesAvailable = trades.length > 0;
         const summaryAvailable = fmt.isNum(finalEquity);
 
-        const labelPrefix = isP22 ? (impl === 'fixed' ? 'P22修正 ' : 'P22旧 ') : (impl === 'fixed' ? 'Fixed ' : 'Original ');
+        // Clear, non-ambiguous label: distinguishes 旧V2 vs P22旧评分 vs P22修正评分
+        const label = isP22
+            ? ('P22' + (impl === 'fixed' ? '修正评分' : '旧评分') + '·' + group)
+            : ('旧V2·' + (impl === 'fixed' ? 'Fixed' : 'Original') + '·' + group);
         const implLabel = isP22 ? (impl === 'fixed' ? 'P22修正风险评分方向' : 'P22旧评分方向（已确认语义错误）') : IMPL_LABELS[impl];
+        const priceMode = summary && summary.price_mode ? summary.price_mode : (isP22 ? 'raw' : 'adjusted_virtual');
 
         return {
             id: def.id,
-            label: labelPrefix + group,
+            label: label,
             implementation: impl,
             implementation_label: implLabel,
+            price_mode: priceMode,
             group: group,
             group_label: GROUP_LABELS[group],
             cost_scenario: COST_SCENARIO_LABEL,
@@ -1378,6 +1385,73 @@
         return out;
     }
 
+    // ---- unified experiment + range state (never read from other pages' transient DOM) ----
+    function getRangePresets(exp) {
+        const isP22 = exp.id.indexOf('p22_') === 0;
+        const full = { key: 'full', label: '完整区间 (' + exp.window.start + ' ~ ' + exp.window.end + ')', from: exp.window.start, to: exp.window.end };
+        if (isP22) {
+            return [
+                full,
+                { key: 'old', label: '旧阶段 (2024-09-02 ~ 2026-07-29)', from: '2024-09-02', to: '2026-07-29' },
+                { key: 'new', label: '新阶段 (2026-07-30 ~ 2026-11-19)', from: '2026-07-30', to: '2026-11-19' },
+                { key: 'custom', label: '自定义', from: '', to: '' }
+            ];
+        }
+        return [
+            full,
+            { key: 'old280', label: '旧280日 (2024-09-02 ~ 2025-10-31)', from: '2024-09-02', to: '2025-10-31' },
+            { key: 'old370', label: '旧370日 (2024-09-02 ~ 2026-03-18)', from: '2024-09-02', to: '2026-03-18' },
+            { key: 'new90', label: '新90日 (2026-03-19 ~ 2026-07-29)', from: '2026-03-19', to: '2026-07-29' },
+            { key: 'custom', label: '自定义', from: '', to: '' }
+        ];
+    }
+
+    // Resolve effective range from unified state for the experiment. Falls back to the
+    // experiment's own full window (from its data contract) and clamps anything outside
+    // the experiment window, flagging the adjustment.
+    function resolveTradesRange(exp) {
+        const presets = getRangePresets(exp);
+        const r = state.tradesRange || { preset: 'full' };
+        let preset = presets.find(function (p) { return p.key === r.preset; });
+        let adjusted = false;
+        if (!preset) { preset = presets[0]; adjusted = true; }
+        let from, to;
+        if (preset.key === 'custom') {
+            from = r.dateFrom || exp.window.start;
+            to = r.dateTo || exp.window.end;
+        } else {
+            from = preset.from;
+            to = preset.to;
+        }
+        if (from < exp.window.start) { from = exp.window.start; adjusted = true; }
+        if (to > exp.window.end) { to = exp.window.end; adjusted = true; }
+        if (from > to) { from = exp.window.start; to = exp.window.end; adjusted = true; }
+        if (adjusted || !state.tradesRange || state.tradesRange.preset !== preset.key ||
+            state.tradesRange.dateFrom !== from || state.tradesRange.dateTo !== to) {
+            state.tradesRange = { preset: preset.key, dateFrom: from, dateTo: to };
+            saveTradesRange();
+        }
+        return { preset: preset.key, dateFrom: from, dateTo: to, presets: presets, adjusted: adjusted };
+    }
+
+    function saveTradesRange() {
+        try { localStorage.setItem(TRADES_RANGE_STORAGE_KEY, JSON.stringify(state.tradesRange)); } catch (e) { /* noop */ }
+    }
+
+    // Single shared experiment switch used by BOTH the top selector and the trades-page selector.
+    function selectExperiment(id) {
+        const c = contract();
+        if (!c.by_id[id]) return false;
+        state.experimentId = id;
+        if (els.experimentSelect) els.experimentSelect.value = id;
+        try { localStorage.setItem(EXPERIMENT_STORAGE_KEY, id); } catch (e) { /* noop */ }
+        state.filters.trades.experiment = id;
+        state.pagination.trades.page = 1;
+        // Range is re-resolved (and clamped, with a prompt) inside renderTrades for the new experiment
+        renderPage(state.currentPage);
+        return true;
+    }
+
     function renderTrades(container) {
         const c = contract();
         const exp = currentExperiment();
@@ -1385,7 +1459,7 @@
         state.tradesLockedExperimentId = exp.id;
         // Load trades ONLY for the current experiment
         const loaded = flattenTrades(exp.id);
-        
+
         // Check for error states from flattenTrades
         if (loaded && loaded.__error) {
             state.tradesError = loaded;
@@ -1398,59 +1472,42 @@
                 return db.localeCompare(da);
             });
         }
-        
-        // Build experiment options for the "All experiments" view (user must explicitly select)
-        const allOptions = c.experiments.map(function (e) {
-            return '<option value="' + esc(e.id) + '">' + esc(e.label) + '（' + esc(e.implementation) + ' ' + esc(e.group) + '）</option>';
-        }).join('');
-        
-        // Determine the current date range from nav filters or use experiment window
-        const navPeriodSel = document.getElementById('navPeriod');
-        let dateFrom = '', dateTo = '';
-        if (navPeriodSel) {
-            const val = navPeriodSel.value;
-            if (val === 'full') { dateFrom = '2024-09-02'; dateTo = exp.id.startsWith('p22_') ? '2026-11-19' : '2026-07-29'; }
-            else if (val === 'p22_old') { dateFrom = '2024-09-02'; dateTo = '2026-07-29'; }
-            else if (val === 'old280') { dateFrom = '2024-09-02'; dateTo = '2025-10-31'; }
-            else if (val === 'old370') { dateFrom = '2024-09-02'; dateTo = exp.id.startsWith('p22_') ? '2026-07-29' : '2026-03-18'; }
-            else if (val === 'new90') { dateFrom = exp.id.startsWith('p22_') ? '2026-07-30' : '2026-03-19'; dateTo = exp.id.startsWith('p22_') ? '2026-11-19' : '2026-07-29'; }
-        }
-        // Fallback to experiment window
-        if (!dateFrom) dateFrom = exp.window.start;
-        if (!dateTo) dateTo = exp.window.end;
-        
-        // Initialize filters with current experiment and date range
-        state.filters.trades = {
-            experiment: exp.id,  // Locked to current experiment by default
-            side: '',
-            reason: '',
-            pnl: '',
-            dateFrom: dateFrom,
-            dateTo: dateTo,
-            symbol: ''
-        };
-        
-        const stats = computeTradeStats(tradesRows, dateFrom, dateTo);
 
-        container.innerHTML = sectionHeader('交易明细 · ' + exp.label, 
-            '版本：' + esc(exp.implementation_label) + ' | 方案：' + esc(exp.group_label) + ' | 区间：' + esc(dateFrom) + ' ~ ' + esc(dateTo) + 
-            ' | 买入 ' + stats.buys + ' 笔 · 卖出 ' + stats.sells + ' 笔 · 合计 ' + stats.total + ' 笔') +
+        const range = resolveTradesRange(exp);
+        const dateFrom = range.dateFrom;
+        const dateTo = range.dateTo;
+        state.filters.trades.experiment = exp.id;
+
+        const allOptions = c.experiments.map(function (e) {
+            return '<option value="' + esc(e.id) + '"' + (e.id === exp.id ? ' selected' : '') + '>' + esc(e.label) + '</option>';
+        }).join('');
+        const rangeOptions = range.presets.map(function (p) {
+            return '<option value="' + esc(p.key) + '"' + (p.key === range.preset ? ' selected' : '') + '>' + esc(p.label) + '</option>';
+        }).join('');
+
+        const stats = computeTradeStats(tradesRows, dateFrom, dateTo);
+        const adjustNote = range.adjusted
+            ? '<div class="alert alert-info" style="margin-top:8px;"><strong>提示：</strong> 所选区间超出当前实验可用范围，已自动调整为 ' + esc(dateFrom) + ' ~ ' + esc(dateTo) + '。</div>'
+            : '';
+
+        container.innerHTML = sectionHeader('交易明细 · ' + exp.label,
+            '版本：' + esc(exp.implementation_label) + ' | 方案：' + esc(exp.group_label) + ' | 区间：' + esc(dateFrom) + ' ~ ' + esc(dateTo) +
+            ' | 买入 ' + stats.buys + ' 笔 · 卖出 ' + stats.sells + ' 笔 · 合计 ' + (stats.buys + stats.sells) + ' 笔') +
             experimentBanner(exp) +
             '<div class="alert alert-warning"><strong>标注：</strong> 价格为 <code>' + esc(exp.price_mode || 'adjusted_virtual') + '</code> 空间；数量为 100 股整手近似；不等于真实证券账户成交记录。' +
             (exp.id.startsWith('p22_') ? ' P22研究代理，非实盘授权。' : '') + '</div>' +
+            adjustNote +
             '<div class="filter-bar" id="tradesFilters">' +
-            '<div class="filter-group"><label>实验（当前锁定）</label><select id="filterExperiment" disabled>' +
-            '<option value="' + esc(exp.id) + '" selected>' + esc(exp.label) + '</option>' +
-            '<option value="" disabled>—— 跨实验合并需显式开启 ——</option>' +
-            allOptions + '</select></div>' +
+            '<div class="filter-group"><label>实验</label><select id="filterExperiment">' + allOptions + '</select></div>' +
+            '<div class="filter-group"><label>区间</label><select id="tradesRange">' + rangeOptions + '</select></div>' +
+            '<div class="filter-group"><label>成交起始日</label><input type="date" id="filterDateFrom" value="' + esc(dateFrom) + '"></div>' +
+            '<div class="filter-group"><label>成交结束日</label><input type="date" id="filterDateTo" value="' + esc(dateTo) + '"></div>' +
             '<div class="filter-group"><label>买卖方向</label><select id="filterSide">' +
             '<option value="">全部</option><option value="buy">买入</option><option value="sell">卖出</option></select></div>' +
             '<div class="filter-group"><label>卖出原因</label><select id="filterReason">' +
             '<option value="">全部</option><option value="target_profit">Target Profit</option><option value="risk_three_layer">Risk Three Layer</option></select></div>' +
             '<div class="filter-group"><label>盈亏筛选</label><select id="filterPnL">' +
             '<option value="">全部</option><option value="profit">盈利</option><option value="loss">亏损</option></select></div>' +
-            '<div class="filter-group"><label>成交起始日</label><input type="date" id="filterDateFrom" value="' + esc(dateFrom) + '"></div>' +
-            '<div class="filter-group"><label>成交结束日</label><input type="date" id="filterDateTo" value="' + esc(dateTo) + '"></div>' +
             '<div class="filter-group"><label>股票代码</label><input type="text" id="filterSymbol" placeholder="如 300987.SZ"></div>' +
             '<button class="btn btn-secondary btn-sm" id="clearFiltersBtn">清除附加筛选</button></div>' +
             '<div class="trade-stats" id="tradeStats">筛选后：' + stats.filtered + ' 条 / 区间内：' + stats.inRange + ' 条</div>' +
@@ -1492,30 +1549,68 @@
     }
 
     function setupTradesFilters(lockedExperimentId, lockedDateFrom, lockedDateTo) {
-        const map = {
-            filterSide: 'side',
-            filterReason: 'reason',
-            filterPnL: 'pnl',
-            filterDateFrom: 'dateFrom',
-            filterDateTo: 'dateTo',
-            filterSymbol: 'symbol'
-        };
-        // Experiment filter is disabled and locked - don't include in map
+        // Experiment selector — operable, shares state with the top selector
+        const expSel = document.getElementById('filterExperiment');
+        if (expSel) {
+            expSel.value = state.experimentId;
+            expSel.addEventListener('change', function () {
+                if (this.value) selectExperiment(this.value);
+            });
+        }
+        // Range preset selector — full / old stage / new stage / custom
+        const rangeSel = document.getElementById('tradesRange');
+        if (rangeSel) {
+            rangeSel.value = state.tradesRange.preset;
+            rangeSel.addEventListener('change', function () {
+                const key = this.value;
+                const exp = currentExperiment();
+                const presets = getRangePresets(exp);
+                if (key === 'custom') {
+                    state.tradesRange = {
+                        preset: 'custom',
+                        dateFrom: state.tradesRange.dateFrom || exp.window.start,
+                        dateTo: state.tradesRange.dateTo || exp.window.end
+                    };
+                } else {
+                    const p = presets.find(function (x) { return x.key === key; });
+                    if (p) state.tradesRange = { preset: key, dateFrom: p.from, dateTo: p.to };
+                }
+                saveTradesRange();
+                state.pagination.trades.page = 1;
+                renderPage('trades');
+            });
+        }
+        // Additional filters (do not touch experiment/range)
+        const map = { filterSide: 'side', filterReason: 'reason', filterPnL: 'pnl', filterSymbol: 'symbol' };
         Object.keys(map).forEach(function (id) {
             const el = document.getElementById(id);
             if (!el) return;
             el.value = state.filters.trades[map[id]] || '';
-            const handler = utilsDebouncedApply(lockedExperimentId, lockedDateFrom, lockedDateTo);
+            const handler = utilsDebouncedApply();
             el.addEventListener('input', handler);
             el.addEventListener('change', handler);
         });
-        // Clear button only clears additional filters, keeps experiment and date range
+        // Custom date inputs -> switch to custom preset, keep experiment
+        const applyCustom = function () {
+            const from = document.getElementById('filterDateFrom').value;
+            const to = document.getElementById('filterDateTo').value;
+            if (!from || !to) return;
+            state.tradesRange = { preset: 'custom', dateFrom: from, dateTo: to };
+            saveTradesRange();
+            state.pagination.trades.page = 1;
+            renderPage('trades');
+        };
+        const df = document.getElementById('filterDateFrom');
+        const dt = document.getElementById('filterDateTo');
+        if (df) df.addEventListener('change', applyCustom);
+        if (dt) dt.addEventListener('change', applyCustom);
+
+        // Clear button clears only additional filters, keeps experiment + range
         document.getElementById('clearFiltersBtn').addEventListener('click', function () {
             state.filters.trades.side = '';
             state.filters.trades.reason = '';
             state.filters.trades.pnl = '';
             state.filters.trades.symbol = '';
-            // Keep experiment and date range locked
             document.getElementById('filterSide').value = '';
             document.getElementById('filterReason').value = '';
             document.getElementById('filterPnL').value = '';
@@ -1533,6 +1628,7 @@
                     state.sort.trades.column = col;
                     state.sort.trades.direction = 'desc';
                 }
+                state.pagination.trades.page = 1;
                 renderTradesTable();
             });
         });
@@ -1551,15 +1647,11 @@
         });
     }
 
-    function utilsDebouncedApply(lockedExperimentId, lockedDateFrom, lockedDateTo) {
+    function utilsDebouncedApply() {
         return debounce(function () {
-            // Experiment is locked - don't allow change via filter
-            state.filters.trades.experiment = lockedExperimentId;
             state.filters.trades.side = document.getElementById('filterSide').value;
             state.filters.trades.reason = document.getElementById('filterReason').value;
             state.filters.trades.pnl = document.getElementById('filterPnL').value;
-            state.filters.trades.dateFrom = document.getElementById('filterDateFrom').value || lockedDateFrom;
-            state.filters.trades.dateTo = document.getElementById('filterDateTo').value || lockedDateTo;
             state.filters.trades.symbol = document.getElementById('filterSymbol').value.trim().toUpperCase();
             state.pagination.trades.page = 1;
             renderTradesTable();
@@ -1568,11 +1660,12 @@
 
     function getFilteredTrades(lockedExperimentId) {
         const f = state.filters.trades;
+        const r = state.tradesRange;
         // Always filter by locked experiment first
         let rows = tradesRows.filter(function (t) {
             return t.experiment_id === lockedExperimentId;
         });
-        // Then apply additional filters
+        // Then apply additional filters + unified range
         return rows.filter(function (t) {
             if (f.side && t.side !== f.side) return false;
             if (f.reason && t.reason !== f.reason) return false;
@@ -1581,8 +1674,8 @@
                 if (f.pnl === 'loss' && (t.net_pnl === null || t.net_pnl >= 0)) return false;
             }
             const d = t.fill_date || t.trade_date || '';
-            if (f.dateFrom && d < f.dateFrom) return false;
-            if (f.dateTo && d > f.dateTo) return false;
+            if (r.dateFrom && d < r.dateFrom) return false;
+            if (r.dateTo && d > r.dateTo) return false;
             if (f.symbol && !String(t.symbol).toUpperCase().includes(f.symbol)) return false;
             return true;
         });
@@ -1621,7 +1714,7 @@
         // Case 1: Data loaded successfully, but date range has no trades
         const inRange = tradesRows.filter(function(t) {
             const d = t.fill_date || t.trade_date || '';
-            return d >= state.filters.trades.dateFrom && d <= state.filters.trades.dateTo;
+            return d >= state.tradesRange.dateFrom && d <= state.tradesRange.dateTo;
         });
         
         // Case 2: Date range has trades, but additional filters excluded all
@@ -1705,7 +1798,7 @@
         if (tbody) tbody.innerHTML = rows || '<tr><td colspan="16" class="sub">' + esc(emptyMessage || '当前筛选无交易记录') + '</td></tr>';
         
         // Update stats display
-        const stats = computeTradeStats(tradesRows, state.filters.trades.dateFrom, state.filters.trades.dateTo);
+        const stats = computeTradeStats(tradesRows, state.tradesRange.dateFrom, state.tradesRange.dateTo);
         const info = document.getElementById('tradesInfo');
         if (info) info.textContent = '区间内：' + stats.inRange + ' 条（买 ' + stats.buys + ' / 卖 ' + stats.sells + '） / 筛选后：' + filtered.length + ' 条';
         const statsEl = document.getElementById('tradeStats');
@@ -2338,11 +2431,7 @@
         state.experimentId = (saved && c.by_id[saved]) ? saved : c.experiments[0].id;
         els.experimentSelect.value = state.experimentId;
         els.experimentSelect.addEventListener('change', function () {
-            state.experimentId = els.experimentSelect.value;
-            localStorage.setItem(EXPERIMENT_STORAGE_KEY, state.experimentId);
-            state.filters.trades.experiment = state.experimentId;
-            state.pagination.trades.page = 1;
-            renderPage(state.currentPage);
+            selectExperiment(els.experimentSelect.value);
         });
     }
 
@@ -2412,18 +2501,24 @@
         await loadData();
         state.contract = buildContract();
         setupExperimentSelect();
+        // Restore persisted trades range preset (validated against the current experiment
+        // on first render via resolveTradesRange)
+        try {
+            const rr = JSON.parse(localStorage.getItem(TRADES_RANGE_STORAGE_KEY) || 'null');
+            if (rr && rr.preset) {
+                state.tradesRange = { preset: rr.preset, dateFrom: rr.dateFrom || '', dateTo: rr.dateTo || '' };
+            }
+        } catch (e) { /* noop */ }
         navigate('overview');
         window.GOLDONE = {
             getContract: function () { return contract(); },
             getState: function () { return state; },
             navigate: navigate,
-            setExperiment: function (id) {
-                if (!contract().by_id[id]) return false;
-                state.experimentId = id;
-                if (els.experimentSelect) els.experimentSelect.value = id;
-                try { localStorage.setItem(EXPERIMENT_STORAGE_KEY, id); } catch (e) { /* noop */ }
-                state.filters.trades.experiment = id;
-                renderPage(state.currentPage);
+            setExperiment: function (id) { return selectExperiment(id); },
+            setTradesRange: function (preset, dateFrom, dateTo) {
+                state.tradesRange = { preset: preset || 'full', dateFrom: dateFrom || '', dateTo: dateTo || '' };
+                saveTradesRange();
+                if (state.currentPage === 'trades') renderPage('trades');
                 return true;
             }
         };
