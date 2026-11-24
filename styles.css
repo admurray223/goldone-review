@@ -1246,6 +1246,29 @@ tr.active-row:hover {
     max-width: 100vw;
 }
 
+/* Fix experiment picker dropdown interception */
+.experiment-picker {
+    /* Container doesn't intercept clicks; only the select itself does */
+    pointer-events: none;
+}
+
+.experiment-picker label {
+    /* Label also shouldn't intercept when select is closed */
+    pointer-events: none;
+}
+
+.experiment-picker select {
+    /* Only the select itself receives pointer events */
+    pointer-events: auto;
+    position: relative;
+    z-index: 10;
+}
+
+/* Main nav should be clickable */
+.main-nav {
+    pointer-events: auto;
+}
+
 .main-nav {
     min-width: 0;
 }
@@ -1265,6 +1288,28 @@ tr.active-row:hover {
     .main-nav {
         max-width: 100%;
     }
+}
+
+/* Fix experiment picker dropdown interception on desktop */
+@media (min-width: 1025px) {
+    .header {
+        flex-wrap: nowrap;
+    }
+    
+    .experiment-picker {
+        flex-shrink: 0;
+    }
+    
+    .main-nav {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+/* Additional safety: make sure nav links are always clickable */
+.nav-link {
+    position: relative;
+    z-index: 5;
 }
 
 @media (max-width: 640px) {
