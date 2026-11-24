@@ -1315,34 +1315,34 @@
         return lookup;
     }
 
-    function flattenTrades() {
+    function flattenTrades(experimentId) {
         const c = contract();
         const raw = state.data.trades || {};
         const pnlLookup = buildPnLLookup();
         const out = [];
-        c.experiments.forEach(function (e) {
-            (raw[e.group] || []).forEach(function (t) {
-                if ((t.variant || 'original') !== e.implementation) return;
-                const isSell = t.side === 'sell';
-                const fillDate = t.fill_date || t.trade_date || '';
-                let pnlData = null;
-                if (isSell) {
-                    const key = e.group + '|' + e.implementation + '|' + t.symbol + '|' + fillDate + '|sell';
-                    pnlData = pnlLookup[key] || null;
-                }
-                out.push(Object.assign({}, t, {
-                    experiment_id: e.id,
-                    experiment_label: e.label,
-                    implementation: e.implementation,
-                    group: e.group,
-                    net_pnl: pnlData ? pnlData.net_pnl : null,
-                    net_return_rate: pnlData ? pnlData.net_return_rate : null,
-                    holding_days: pnlData ? pnlData.holding_days : null,
-                    cumulative_realized_pnl: pnlData ? pnlData.cumulative_realized_pnl : null,
-                    unknown_fields: pnlData ? pnlData.unknown_fields : [],
-                    trade_id: pnlData ? pnlData.trade_id : (t.trade_id || null)
-                }));
-            });
+        const targetExp = experimentId ? c.by_id[experimentId] : null;
+        if (!targetExp) return out;
+        (raw[targetExp.group] || []).forEach(function (t) {
+            if ((t.variant || 'original') !== targetExp.implementation) return;
+            const isSell = t.side === 'sell';
+            const fillDate = t.fill_date || t.trade_date || '';
+            let pnlData = null;
+            if (isSell) {
+                const key = targetExp.group + '|' + targetExp.implementation + '|' + t.symbol + '|' + fillDate + '|sell';
+                pnlData = pnlLookup[key] || null;
+            }
+            out.push(Object.assign({}, t, {
+                experiment_id: targetExp.id,
+                experiment_label: targetExp.label,
+                implementation: targetExp.implementation,
+                group: targetExp.group,
+                net_pnl: pnlData ? pnlData.net_pnl : null,
+                net_return_rate: pnlData ? pnlData.net_return_rate : null,
+                holding_days: pnlData ? pnlData.holding_days : null,
+                cumulative_realized_pnl: pnlData ? pnlData.cumulative_realized_pnl : null,
+                unknown_fields: pnlData ? pnlData.unknown_fields : [],
+                trade_id: pnlData ? pnlData.trade_id : (t.trade_id || null)
+            }));
         });
         return out;
     }
@@ -1350,46 +1350,70 @@
     function renderTrades(container) {
         const c = contract();
         const exp = currentExperiment();
-        tradesRows = flattenTrades().sort(function (a, b) {
+        // Lock the experiment ID for this trades view
+        state.tradesLockedExperimentId = exp.id;
+        // Load trades ONLY for the current experiment
+        tradesRows = flattenTrades(exp.id).sort(function (a, b) {
             const da = a.fill_date || a.trade_date || '';
             const db = b.fill_date || b.trade_date || '';
             return db.localeCompare(da);
         });
-        const options = c.experiments.map(function (e) {
+        
+        // Build experiment options for the "All experiments" view (user must explicitly select)
+        const allOptions = c.experiments.map(function (e) {
             return '<option value="' + esc(e.id) + '">' + esc(e.label) + '（' + esc(e.implementation) + ' ' + esc(e.group) + '）</option>';
         }).join('');
+        
+        // Determine the current date range from nav filters or use experiment window
+        const navPeriodSel = document.getElementById('navPeriod');
+        let dateFrom = '', dateTo = '';
+        if (navPeriodSel) {
+            const val = navPeriodSel.value;
+            if (val === 'full') { dateFrom = '2024-09-02'; dateTo = exp.id.startsWith('p22_') ? '2026-11-19' : '2026-07-29'; }
+            else if (val === 'p22_old') { dateFrom = '2024-09-02'; dateTo = '2026-07-29'; }
+            else if (val === 'old280') { dateFrom = '2024-09-02'; dateTo = '2025-10-31'; }
+            else if (val === 'old370') { dateFrom = '2024-09-02'; dateTo = exp.id.startsWith('p22_') ? '2026-07-29' : '2026-03-18'; }
+            else if (val === 'new90') { dateFrom = exp.id.startsWith('p22_') ? '2026-07-30' : '2026-03-19'; dateTo = exp.id.startsWith('p22_') ? '2026-11-19' : '2026-07-29'; }
+        }
+        // Fallback to experiment window
+        if (!dateFrom) dateFrom = exp.window.start;
+        if (!dateTo) dateTo = exp.window.end;
+        
+        // Initialize filters with current experiment and date range
+        state.filters.trades = {
+            experiment: exp.id,  // Locked to current experiment by default
+            side: '',
+            reason: '',
+            pnl: '',
+            dateFrom: dateFrom,
+            dateTo: dateTo,
+            symbol: ''
+        };
+        
+        const stats = computeTradeStats(tradesRows, dateFrom, dateTo);
 
-        container.innerHTML = sectionHeader('交易浏览器 · ' + exp.label, '共 ' + tradesRows.length + ' 笔交易，可按实验切换') +
+        container.innerHTML = sectionHeader('交易明细 · ' + exp.label, 
+            '版本：' + esc(exp.implementation_label) + ' | 方案：' + esc(exp.group_label) + ' | 区间：' + esc(dateFrom) + ' ~ ' + esc(dateTo) + 
+            ' | 买入 ' + stats.buys + ' 笔 · 卖出 ' + stats.sells + ' 笔 · 合计 ' + stats.total + ' 笔') +
             experimentBanner(exp) +
-            '<div class="alert alert-warning"><strong>标注：</strong> 价格为 <code>adjusted_virtual</code> 空间；数量为 100 股整手近似；不等于真实证券账户成交记录。</div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">首笔风险成交（Fixed 组）</span></div><div class="card-body">' +
-            '<div class="table-container"><table><thead><tr><th>实验</th><th>代码</th><th>方向</th><th>signal_date</th><th>fill_date</th><th>价格</th><th>数量</th></tr></thead><tbody>' +
-            ['fixed_C_baseline', 'fixed_R_baseline'].map(function (id) {
-                const e = c.by_id[id];
-                const t = e.first_risk_trade;
-                if (!e.availability.trades) {
-                    return '<tr><td>' + esc(e.label) + '</td><td colspan="6">' + naCell('缺少交易明细') + '</td></tr>';
-                }
-                if (!t) {
-                    return '<tr><td>' + esc(e.label) + '</td><td colspan="6">' + absentZero('无 risk_three_layer 卖出') + '</td></tr>';
-                }
-                return '<tr><td>' + esc(e.label) + '</td><td class="mono">' + esc(t.symbol) + '</td><td>' + esc(t.side) + '</td>' +
-                    '<td class="mono">' + esc(t.signal_date || '-') + '</td><td class="mono">' + esc(t.fill_date || t.trade_date || '-') + '</td>' +
-                    '<td class="mono">' + fmt.money(t.price, 4) + '</td><td class="mono">' + fmt.money(t.quantity, 0) + '</td></tr>';
-            }).join('') + '</tbody></table></div></div></div>' +
+            '<div class="alert alert-warning"><strong>标注：</strong> 价格为 <code>' + esc(exp.price_mode || 'adjusted_virtual') + '</code> 空间；数量为 100 股整手近似；不等于真实证券账户成交记录。' +
+            (exp.id.startsWith('p22_') ? ' P22研究代理，非实盘授权。' : '') + '</div>' +
             '<div class="filter-bar" id="tradesFilters">' +
-            '<div class="filter-group"><label>实验</label><select id="filterExperiment">' +
-            '<option value="">全部四组</option>' + options + '</select></div>' +
+            '<div class="filter-group"><label>实验（当前锁定）</label><select id="filterExperiment" disabled>' +
+            '<option value="' + esc(exp.id) + '" selected>' + esc(exp.label) + '</option>' +
+            '<option value="" disabled>—— 跨实验合并需显式开启 ——</option>' +
+            allOptions + '</select></div>' +
             '<div class="filter-group"><label>买卖方向</label><select id="filterSide">' +
             '<option value="">全部</option><option value="buy">买入</option><option value="sell">卖出</option></select></div>' +
             '<div class="filter-group"><label>卖出原因</label><select id="filterReason">' +
             '<option value="">全部</option><option value="target_profit">Target Profit</option><option value="risk_three_layer">Risk Three Layer</option></select></div>' +
             '<div class="filter-group"><label>盈亏筛选</label><select id="filterPnL">' +
             '<option value="">全部</option><option value="profit">盈利</option><option value="loss">亏损</option></select></div>' +
-            '<div class="filter-group"><label>起始日期</label><input type="date" id="filterDateFrom"></div>' +
-            '<div class="filter-group"><label>结束日期</label><input type="date" id="filterDateTo"></div>' +
+            '<div class="filter-group"><label>成交起始日</label><input type="date" id="filterDateFrom" value="' + esc(dateFrom) + '"></div>' +
+            '<div class="filter-group"><label>成交结束日</label><input type="date" id="filterDateTo" value="' + esc(dateTo) + '"></div>' +
             '<div class="filter-group"><label>股票代码</label><input type="text" id="filterSymbol" placeholder="如 300987.SZ"></div>' +
-            '<button class="btn btn-secondary btn-sm" id="clearFiltersBtn">清空筛选</button></div>' +
+            '<button class="btn btn-secondary btn-sm" id="clearFiltersBtn">清除附加筛选</button></div>' +
+            '<div class="trade-stats" id="tradeStats">筛选后：' + stats.filtered + ' 条 / 区间内：' + stats.inRange + ' 条</div>' +
             '<div class="table-container"><table id="tradesTable"><thead><tr>' +
             '<th data-sort="experiment_label">实验</th><th data-sort="group">组</th><th data-sort="symbol">股票代码</th>' +
             '<th data-sort="side">方向</th><th data-sort="signal_date">信号日期</th><th data-sort="fill_date">成交日期</th>' +
@@ -1398,19 +1422,33 @@
             '<th data-sort="net_pnl">本次净盈亏(元)</th><th data-sort="net_return_rate">净收益率</th>' +
             '<th data-sort="holding_days">持有交易日</th><th data-sort="cumulative_realized_pnl">累计已实现净盈亏</th>' +
             '</tr></thead><tbody id="tradesTbody"></tbody></table></div>' +
-            '<div class="pagination"><div class="pagination-info" id="tradesInfo">共 0 条</div>' +
+            '<div class="pagination"><div class="pagination-info" id="tradesInfo"></div>' +
             '<div class="pagination-controls"><button class="pagination-btn" id="tradesPrev" disabled>上一页</button>' +
             '<span id="tradesPageInfo">第 1 / 1 页</span>' +
             '<button class="pagination-btn" id="tradesNext" disabled>下一页</button></div></div>';
 
-        state.filters.trades.experiment = exp.id;
-        setupTradesFilters();
+        setupTradesFilters(exp.id, dateFrom, dateTo);
         renderTradesTable();
     }
 
-    function setupTradesFilters() {
+    function computeTradeStats(rows, dateFrom, dateTo) {
+        let inRange = rows.filter(function(t) {
+            const d = t.fill_date || t.trade_date || '';
+            return d >= dateFrom && d <= dateTo;
+        });
+        const buys = inRange.filter(function(t) { return t.side === 'buy'; }).length;
+        const sells = inRange.filter(function(t) { return t.side === 'sell'; }).length;
+        return {
+            total: rows.length,
+            inRange: inRange.length,
+            buys: buys,
+            sells: sells,
+            filtered: inRange.length
+        };
+    }
+
+    function setupTradesFilters(lockedExperimentId, lockedDateFrom, lockedDateTo) {
         const map = {
-            filterExperiment: 'experiment',
             filterSide: 'side',
             filterReason: 'reason',
             filterPnL: 'pnl',
@@ -1418,20 +1456,26 @@
             filterDateTo: 'dateTo',
             filterSymbol: 'symbol'
         };
+        // Experiment filter is disabled and locked - don't include in map
         Object.keys(map).forEach(function (id) {
             const el = document.getElementById(id);
             if (!el) return;
             el.value = state.filters.trades[map[id]] || '';
-            const handler = utilsDebouncedApply();
+            const handler = utilsDebouncedApply(lockedExperimentId, lockedDateFrom, lockedDateTo);
             el.addEventListener('input', handler);
             el.addEventListener('change', handler);
         });
+        // Clear button only clears additional filters, keeps experiment and date range
         document.getElementById('clearFiltersBtn').addEventListener('click', function () {
-            state.filters.trades = { experiment: '', side: '', reason: '', pnl: '', dateFrom: '', dateTo: '', symbol: '' };
-            Object.keys(map).forEach(function (id) {
-                const el = document.getElementById(id);
-                if (el) el.value = '';
-            });
+            state.filters.trades.side = '';
+            state.filters.trades.reason = '';
+            state.filters.trades.pnl = '';
+            state.filters.trades.symbol = '';
+            // Keep experiment and date range locked
+            document.getElementById('filterSide').value = '';
+            document.getElementById('filterReason').value = '';
+            document.getElementById('filterPnL').value = '';
+            document.getElementById('filterSymbol').value = '';
             state.pagination.trades.page = 1;
             renderTradesTable();
         });
@@ -1455,7 +1499,7 @@
             }
         });
         document.getElementById('tradesNext').addEventListener('click', function () {
-            const totalPages = Math.ceil(getFilteredTrades().length / state.pagination.trades.pageSize);
+            const totalPages = Math.ceil(getFilteredTrades(lockedExperimentId).length / state.pagination.trades.pageSize);
             if (state.pagination.trades.page < totalPages) {
                 state.pagination.trades.page++;
                 renderTradesTable();
@@ -1463,24 +1507,29 @@
         });
     }
 
-    function utilsDebouncedApply() {
+    function utilsDebouncedApply(lockedExperimentId, lockedDateFrom, lockedDateTo) {
         return debounce(function () {
-            state.filters.trades.experiment = document.getElementById('filterExperiment').value;
+            // Experiment is locked - don't allow change via filter
+            state.filters.trades.experiment = lockedExperimentId;
             state.filters.trades.side = document.getElementById('filterSide').value;
             state.filters.trades.reason = document.getElementById('filterReason').value;
             state.filters.trades.pnl = document.getElementById('filterPnL').value;
-            state.filters.trades.dateFrom = document.getElementById('filterDateFrom').value;
-            state.filters.trades.dateTo = document.getElementById('filterDateTo').value;
+            state.filters.trades.dateFrom = document.getElementById('filterDateFrom').value || lockedDateFrom;
+            state.filters.trades.dateTo = document.getElementById('filterDateTo').value || lockedDateTo;
             state.filters.trades.symbol = document.getElementById('filterSymbol').value.trim().toUpperCase();
             state.pagination.trades.page = 1;
             renderTradesTable();
         }, 150);
     }
 
-    function getFilteredTrades() {
+    function getFilteredTrades(lockedExperimentId) {
         const f = state.filters.trades;
-        return tradesRows.filter(function (t) {
-            if (f.experiment && t.experiment_id !== f.experiment) return false;
+        // Always filter by locked experiment first
+        let rows = tradesRows.filter(function (t) {
+            return t.experiment_id === lockedExperimentId;
+        });
+        // Then apply additional filters
+        return rows.filter(function (t) {
             if (f.side && t.side !== f.side) return false;
             if (f.reason && t.reason !== f.reason) return false;
             if (f.pnl && t.side === 'sell') {
@@ -1496,7 +1545,9 @@
     }
 
     function renderTradesTable() {
-        const filtered = getFilteredTrades();
+        // Get locked experiment ID from state (set by renderTrades)
+        const lockedExperimentId = state.tradesLockedExperimentId || state.experimentId;
+        const filtered = getFilteredTrades(lockedExperimentId);
         // Apply sorting
         const sortCol = state.sort.trades.column;
         const sortDir = state.sort.trades.direction;
@@ -1563,8 +1614,13 @@
         }).join('');
         const tbody = document.getElementById('tradesTbody');
         if (tbody) tbody.innerHTML = rows || '<tr><td colspan="16" class="sub">当前筛选无交易记录</td></tr>';
+        
+        // Update stats display
+        const stats = computeTradeStats(tradesRows, state.filters.trades.dateFrom, state.filters.trades.dateTo);
         const info = document.getElementById('tradesInfo');
-        if (info) info.textContent = '共 ' + filtered.length + ' 条 / 全部 ' + tradesRows.length + ' 条';
+        if (info) info.textContent = '区间内：' + stats.inRange + ' 条（买 ' + stats.buys + ' / 卖 ' + stats.sells + '） / 筛选后：' + filtered.length + ' 条';
+        const statsEl = document.getElementById('tradeStats');
+        if (statsEl) statsEl.textContent = '区间内：' + stats.inRange + ' 条（买 ' + stats.buys + ' / 卖 ' + stats.sells + '） / 筛选后：' + filtered.length + ' 条';
         const pageInfo = document.getElementById('tradesPageInfo');
         if (pageInfo) pageInfo.textContent = '第 ' + page + ' / ' + totalPages + ' 页';
         const prev = document.getElementById('tradesPrev');
