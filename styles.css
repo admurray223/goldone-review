@@ -96,6 +96,13 @@ body {
     gap: 16px;
     flex: 0 0 auto;
     min-width: 0;
+    /* Header-left only contains text elements, prevent click interception */
+    pointer-events: none;
+}
+
+.header-left * {
+    /* Allow children to receive pointer events if needed */
+    pointer-events: auto;
 }
 
 .site-title {
