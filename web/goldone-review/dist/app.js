@@ -18,27 +18,47 @@
         { id: 'original_C_baseline', implementation: 'original', group: 'C' },
         { id: 'original_R_baseline', implementation: 'original', group: 'R' },
         { id: 'fixed_C_baseline', implementation: 'fixed', group: 'C' },
-        { id: 'fixed_R_baseline', implementation: 'fixed', group: 'R' }
+        { id: 'fixed_R_baseline', implementation: 'fixed', group: 'R' },
+        // P22 Risk Score Direction Fix experiments
+        { id: 'p22_A_original', implementation: 'original', group: 'A' },
+        { id: 'p22_A_fixed', implementation: 'fixed', group: 'A' },
+        { id: 'p22_C_original', implementation: 'original', group: 'C' },
+        { id: 'p22_C_fixed', implementation: 'fixed', group: 'C' }
     ];
 
     const GROUP_LABELS = {
         C: 'Group C · 评分优先',
-        R: 'Group R · 随机/其他'
+        R: 'Group R · 随机/其他',
+        A: 'Group A · P22-R1'
     };
 
     const IMPL_LABELS = {
         original: 'Original（含已确认风险状态缺陷）',
-        fixed: 'Fixed（状态映射已修复，策略表达待审阅）'
+        fixed: 'Fixed（状态映射已修复，策略表达待审阅）',
+        p22_original: 'P22旧评分方向（已确认语义错误）',
+        p22_fixed: 'P22修正风险评分方向'
     };
 
     const COST_SCENARIO_LABEL = 'baseline · 单倍佣金/滑点';
+
+    // P22 explicit key mapping: experiment summary key → curve/trade key
+    const P22_KEY_MAP = {
+        'A_original': 'A-old',
+        'A_fixed': 'A-risk-fixed',
+        'C_original': 'C-old',
+        'C_fixed': 'C-risk-fixed'
+    };
 
     const SEGMENT_DEFS = [
         { key: 'old_280d', label: '旧280日', start: '2024-09-02', end: '2025-10-31' },
         { key: 'parent_new_window', label: 'D2B 新增90日', start: '2025-11-03', end: '2026-03-18' },
         { key: 'old_window', label: '旧370日', start: '2024-09-02', end: '2026-03-18' },
         { key: 'new_window', label: 'D2C 新增90日', start: '2026-03-19', end: '2026-07-29' },
-        { key: 'full_period', label: '完整460日', start: '2024-09-02', end: '2026-07-29' }
+        { key: 'full_period', label: '完整460日', start: '2024-09-02', end: '2026-07-29' },
+        // P22 segments
+        { key: 'p22_full_window', label: 'P22完整535日', start: '2024-09-02', end: '2026-11-19' },
+        { key: 'p22_old_window', label: 'P22旧窗口(至2026-07-29)', start: '2024-09-02', end: '2026-07-29' },
+        { key: 'p22_new_window', label: 'P22新增窗口(2026-07-30起)', start: '2026-07-30', end: '2026-11-19' }
     ];
 
     const DATA_FILES = [
@@ -66,7 +86,13 @@
         'security_scan.json',
         'sell_pnl.json',
         'sell_pnl_summaries.json',
-        'reconciliation.json'
+        'reconciliation.json',
+        'v2_p2_status.json',
+        'v2_p2_case.json',
+        // P22 data files
+        'experiments_p22.json',
+        'equity_curves_p22.json',
+        'trades_p22.json'
     ];
 
     const state = {
@@ -260,7 +286,24 @@
         return { value: null, source: null, available: false, reason: 'index_data.json 未覆盖 2026-03-18~2026-07-29' };
     }
 
-    function deriveSegments(curve, trades, idx, initialEquity, impl) {
+    function computeBenchmarkP22Window(idx) {
+        const startPt = valueOnOrBefore(idx, '2026-07-29', 'close');
+        const endPt = valueOnOrBefore(idx, '2026-11-19', 'close');
+        if (startPt && endPt && startPt.close > 0 && startPt.date < endPt.date) {
+            return {
+                value: endPt.close / startPt.close - 1,
+                start_date: startPt.date,
+                end_date: endPt.date,
+                start_close: startPt.close,
+                end_close: endPt.close,
+                source: 'index_data.json 000300.SH close ' + startPt.date + ' -> ' + endPt.date,
+                available: true
+            };
+        }
+        return { value: null, source: null, available: false, reason: 'index_data.json 未覆盖 2026-07-29~2026-11-19' };
+    }
+
+    function deriveSegments(curve, trades, idx, initialEquity, impl, isP22) {
         return SEGMENT_DEFS.map(function (def) {
             const row = {
                 key: def.key,
@@ -308,21 +351,39 @@
             row.trade_count = windowTrades.length;
             row.buys = windowTrades.filter(function (t) { return t.side === 'buy'; }).length;
             row.sells = windowTrades.filter(function (t) { return t.side === 'sell'; }).length;
-            row.source = 'derived: own equity curve (' + (impl === 'fixed' ? 'fixed' : 'original') + ') × index_data.json';
+            const implLabel = isP22 ? (impl === 'fixed' ? 'P22修正' : 'P22旧') : (impl === 'fixed' ? 'fixed' : 'original');
+            row.source = 'derived: own equity curve (' + implLabel + ') × index_data.json';
             return row;
         });
     }
 
     function buildExperiment(def, ctx) {
-        const summary = ctx.exps[def.group] || null;
+        const isP22 = def.id.startsWith('p22_');
         const impl = def.implementation;
         const group = def.group;
-        const curveKey = group + '_' + impl;
+        
+        // For P22, the summary key includes both group and implementation
+        const summaryKey = isP22 ? group + '_' + impl : group;
+        const summary = ctx.exps[summaryKey] || null;
+        
+        // Use explicit P22 key mapping for curves and trades
+        const curveKey = isP22 ? P22_KEY_MAP[summaryKey] : group + '_' + impl;
         const curve = Array.isArray(ctx.curves[curveKey]) ? ctx.curves[curveKey] : [];
-        const groupTrades = Array.isArray(ctx.tradesRaw[group]) ? ctx.tradesRaw[group] : [];
-        const trades = groupTrades.filter(function (t) {
-            return (t.variant || 'original') === impl;
-        });
+        
+        // For P22, trades are stored under the same keys as curves (A-old, A-risk-fixed, etc.)
+        // For non-P22, trades are stored under group (C, R) with variant filtering
+        let trades = [];
+        if (isP22) {
+            const tradeKey = curveKey; // Same key as curve for P22
+            const tradeData = Array.isArray(ctx.tradesRaw[tradeKey]) ? ctx.tradesRaw[tradeKey] : [];
+            // P22 trades already have correct variant in data, no filtering needed
+            trades = tradeData;
+        } else {
+            const groupTrades = Array.isArray(ctx.tradesRaw[group]) ? ctx.tradesRaw[group] : [];
+            trades = groupTrades.filter(function (t) {
+                return (t.variant || 'original') === impl;
+            });
+        }
         const initialEquity = (summary && fmt.isNum(summary.initial_equity))
             ? summary.initial_equity
             : (curve.length ? curve[0].total_equity : null);
@@ -336,22 +397,24 @@
             : (fmt.isNum(finalEquity) && fmt.isNum(initialEquity) && initialEquity > 0
                 ? finalEquity / initialEquity - 1 : null);
 
-        const eq0318Curve = valueOnOrBefore(curve, '2026-03-18', 'total_equity');
-        const eq0318Summary = summary && summary.segments
+        // P22 uses different boundary dates
+        const boundaryDate = isP22 ? '2026-07-29' : '2026-03-18';
+        const eqBoundaryCurve = valueOnOrBefore(curve, boundaryDate, 'total_equity');
+        const eqBoundarySummary = summary && summary.segments
             ? (impl === 'fixed'
-                ? (summary.segments.new_window_fixed || {}).opening_equity
+                ? (summary.segments.new_window || {}).opening_equity
                 : (summary.segments.old_window || {}).end_equity)
             : undefined;
-        const eq0318 = fmt.isNum(eq0318Curve) ? eq0318Curve
-            : (fmt.isNum(eq0318Summary) ? eq0318Summary : null);
-        const eq0729Curve = valueOnOrBefore(curve, '2026-07-29', 'total_equity');
-        const eq0729 = fmt.isNum(eq0729Curve) ? eq0729Curve : finalEquity;
+        const eqBoundary = fmt.isNum(eqBoundaryCurve) ? eqBoundaryCurve
+            : (fmt.isNum(eqBoundarySummary) ? eqBoundarySummary : null);
+        const eqEndCurve = valueOnOrBefore(curve, '2026-11-19', 'total_equity');
+        const eqEnd = fmt.isNum(eqEndCurve) ? eqEndCurve : finalEquity;
 
-        const new90 = (fmt.isNum(eq0729) && fmt.isNum(eq0318) && eq0318 > 0)
-            ? eq0729 / eq0318 - 1 : null;
-        const benchmark = ctx.benchmarkNewWindow;
-        const new90Excess = (fmt.isNum(new90) && benchmark.available && fmt.isNum(benchmark.value))
-            ? new90 - benchmark.value : null;
+        const newWindowReturn = (fmt.isNum(eqEnd) && fmt.isNum(eqBoundary) && eqBoundary > 0)
+            ? eqEnd / eqBoundary - 1 : null;
+        const benchmark = isP22 ? ctx.benchmarkP22Window : ctx.benchmarkNewWindow;
+        const newWindowExcess = (fmt.isNum(newWindowReturn) && benchmark.available && fmt.isNum(benchmark.value))
+            ? newWindowReturn - benchmark.value : null;
 
         const tradeCount = summary && fmt.isNum(summary['trade_count_' + impl])
             ? summary['trade_count_' + impl] : (trades.length || 0);
@@ -379,7 +442,7 @@
             }
         }
 
-        const segments = deriveSegments(curve, trades, ctx.idx, initialEquity, impl);
+        const segments = deriveSegments(curve, trades, ctx.idx, initialEquity, impl, isP22);
         const segmentByKey = {};
         segments.forEach(function (s) { segmentByKey[s.key] = s; });
 
@@ -387,11 +450,14 @@
         const tradesAvailable = trades.length > 0;
         const summaryAvailable = fmt.isNum(finalEquity);
 
+        const labelPrefix = isP22 ? (impl === 'fixed' ? 'P22修正 ' : 'P22旧 ') : (impl === 'fixed' ? 'Fixed ' : 'Original ');
+        const implLabel = isP22 ? (impl === 'fixed' ? 'P22修正风险评分方向' : 'P22旧评分方向（已确认语义错误）') : IMPL_LABELS[impl];
+
         return {
             id: def.id,
-            label: (impl === 'fixed' ? 'Fixed ' : 'Original ') + group,
+            label: labelPrefix + group,
             implementation: impl,
-            implementation_label: IMPL_LABELS[impl],
+            implementation_label: implLabel,
             group: group,
             group_label: GROUP_LABELS[group],
             cost_scenario: COST_SCENARIO_LABEL,
@@ -400,12 +466,12 @@
             initial_equity: initialEquity,
             final_equity: finalEquity,
             total_return: totalReturn,
-            equity_2026_03_18: eq0318,
-            equity_2026_07_29: eq0729,
-            new_90d_return: new90,
+            equity_2026_03_18: isP22 ? null : eqBoundary,  // P22 uses 2026-07-29 as boundary
+            equity_2026_07_29: eqBoundary,
+            new_90d_return: newWindowReturn,
             benchmark_new_90d: benchmark.value,
             benchmark_source: benchmark.source,
-            new_90d_excess: new90Excess,
+            new_90d_excess: newWindowExcess,
             max_drawdown: curveAvailable ? maxDrawdownOf(curve, initialEquity) : null,
             trade_count: tradeCount,
             buys: buys,
@@ -428,21 +494,27 @@
                 equity_curve: curveAvailable ? '可用（' + curve.length + ' 个交易日）'
                     : '缺失（equity_curves.json#' + curveKey + '）',
                 trades: tradesAvailable ? '可用（' + trades.length + ' 笔）'
-                    : '缺失（trades.json#' + group + ' variant=' + impl + '）',
+                    : (isP22
+                        ? '缺失（trades.json#' + curveKey + '）'
+                        : '缺失（trades.json#' + group + ' variant=' + impl + '）'),
                 segments: curveAvailable ? '可用（由自身净值曲线推导）' : '缺失（无净值曲线，无法推导）'
             },
             source: {
-                summary: 'experiments.json#' + group,
+                summary: 'experiments.json#' + summaryKey,
                 equity_curve: 'equity_curves.json#' + curveKey,
-                trades: 'trades.json#' + group + '[variant=' + impl + ']',
+                trades: isP22 ? 'trades.json#' + curveKey : 'trades.json#' + group + '[variant=' + impl + ']',
                 segments: 'derived: equity_curves.json#' + curveKey + ' × index_data.json',
                 benchmark: benchmark.source || 'index_data.json'
             },
             risk_fix_metadata: summary ? summary.risk_fix_metadata : null,
             curve_key: curveKey,
-            note: impl === 'original'
-                ? 'Original 组含已确认风险状态缺陷（sector_gate weakening != weak），仅作历史对照。'
-                : 'Fixed 组已修复状态映射，但策略表达仍待用户审阅，不等于已接受策略。'
+            note: isP22
+                ? (impl === 'original'
+                    ? 'P22旧评分方向：strength_score 当作 risk_score 使用，方向颠倒（卖强持弱），已确认语义错误，历史记录保留。'
+                    : 'P22修正风险评分方向：risk = clamp(5 - 涨跌幅×100, 0, 10)，仅修正退出评分方向与输入防护，不改买入/仓位/会计规则。研究代理，非实盘授权。')
+                : (impl === 'original'
+                    ? 'Original 组含已确认风险状态缺陷（sector_gate weakening != weak），仅作历史对照。'
+                    : 'Fixed 组已修复状态映射，但策略表达仍待用户审阅，不等于已接受策略。')
         };
     }
 
@@ -453,12 +525,14 @@
         const segMetrics = state.data.segment_metrics || {};
         const idx = Array.isArray(state.data.index_data) ? state.data.index_data : [];
         const benchmarkNewWindow = computeBenchmarkNewWindow(idx, segMetrics);
+        const benchmarkP22Window = computeBenchmarkP22Window(idx);
         const ctx = {
             exps: exps,
             curves: curves,
             tradesRaw: tradesRaw,
             idx: idx,
-            benchmarkNewWindow: benchmarkNewWindow
+            benchmarkNewWindow: benchmarkNewWindow,
+            benchmarkP22Window: benchmarkP22Window
         };
         const experiments = EXPERIMENT_DEFS.map(function (def) {
             return buildExperiment(def, ctx);
@@ -473,6 +547,7 @@
             formal_baseline: (state.data.manifest || {}).formal_baseline || null,
             experiment_ids: experiments.map(function (e) { return e.id; }),
             benchmark_new_window: benchmarkNewWindow,
+            benchmark_p22_window: benchmarkP22Window,
             experiments: experiments,
             by_id: byId,
             files: {
@@ -511,6 +586,10 @@
         DATA_FILES.forEach(function (file, i) {
             state.data[file.replace('.json', '')] = results[i];
         });
+        
+        // P22 data is kept separate and accessed via explicit key mapping in buildExperiment
+        // No Object.assign merge to avoid key conflicts between V1/V2/P22 namespaces
+        
         loadFeedback();
         const man = state.data.manifest || {};
         if (man.formal_baseline) {
@@ -678,6 +757,7 @@
         cost: renderCostAttribution,
         behaviour: renderBehaviour,
         quality: renderQuality,
+        v2: renderV2P2,
         history: renderHistory,
         feedback: renderFeedbackPage
     };
@@ -825,15 +905,23 @@
                 '<div class="alert alert-warning">' + naCell(exp.availability_detail.equity_curve) + '</div>';
             return;
         }
+        const isP22 = exp.id.startsWith('p22_');
+        const fullEnd = isP22 ? '2026-11-19' : '2026-07-29';
+        const newWindowStart = isP22 ? '2026-07-30' : '2026-03-19';
+        const newWindowEnd = isP22 ? '2026-11-19' : '2026-07-29';
+        const fullLabel = isP22 ? 'P22完整535日' : '全区间 460日';
+        const newLabel = isP22 ? 'P22新增窗口' : '新90日';
+        
         container.innerHTML = sectionHeader('净值与回撤 · ' + exp.label,
             '主图为当前实验自身净值与沪深300基准；下方对比图为四组实验') +
             experimentBanner(exp) +
             '<div class="filter-bar" id="navFilters">' +
             '<div class="filter-group"><label>时间范围</label><select id="navPeriod">' +
-            '<option value="full">全区间 2024-09-02 ~ 2026-07-29</option>' +
-            '<option value="old280">旧280日 2024-09-02 ~ 2025-10-31</option>' +
-            '<option value="old370">旧370日 2024-09-02 ~ 2026-03-18</option>' +
-            '<option value="new90">新90日 2026-03-19 ~ 2026-07-29</option>' +
+            '<option value="full">' + fullLabel + ' 2024-09-02 ~ ' + fullEnd + '</option>' +
+            (isP22 ? '<option value="p22_old">P22旧窗口 2024-09-02 ~ 2026-07-29</option>' :
+                '<option value="old280">旧280日 2024-09-02 ~ 2025-10-31</option>' +
+                '<option value="old370">旧370日 2024-09-02 ~ 2026-03-18</option>') +
+            '<option value="new90">' + newLabel + ' ' + newWindowStart + ' ~ ' + newWindowEnd + '</option>' +
             '<option value="custom">自定义</option></select></div>' +
             '<div class="filter-group" id="customDateFrom" style="display:none;"><label>起始日期</label><input type="date" id="navDateFrom"></div>' +
             '<div class="filter-group" id="customDateTo" style="display:none;"><label>结束日期</label><input type="date" id="navDateTo"></div>' +
@@ -842,23 +930,23 @@
             '<button class="btn btn-secondary btn-sm" id="resetZoomBtn">重置缩放</button>' +
             '</div>' +
             '<div class="metric-grid compact">' +
-            metricCard('当前实验期末权益（2026-07-29）', moneyCell(metric(exp.equity_2026_07_29, '暂无数据', { dp: 6 }))) +
+            metricCard('当前实验期末权益（' + fullEnd + '）', moneyCell(metric(exp.equity_2026_07_29, '暂无数据', { dp: 6 }))) +
             metricCard('当前实验总收益', pctCell(metric(exp.total_return, '暂无数据', { dp: 2 }))) +
             metricCard('当前实验最大回撤', pctCell(metric(exp.max_drawdown, '暂无数据', { dp: 2 }))) +
-            metricCard('当前实验新90日收益', pctCell(metric(exp.new_90d_return, '暂无数据', { dp: 4 }))) +
+            metricCard('当前实验' + newLabel + '收益', pctCell(metric(exp.new_90d_return, '暂无数据', { dp: 4 }))) +
             '</div>' +
             '<div class="card"><div class="card-body"><div class="chart-container" style="height:460px;"><canvas id="equityChart"></canvas></div></div></div>' +
             '<div class="card" style="margin-top:20px;"><div class="card-body"><div class="chart-container" style="height:280px;"><canvas id="drawdownChart"></canvas></div></div></div>' +
             '<div class="card" style="margin-top:20px;"><div class="card-header"><span class="card-title">四组实验净值对比（绝对权益）</span></div>' +
             '<div class="card-body"><div class="chart-container" style="height:360px;"><canvas id="compareChart"></canvas></div></div></div>';
 
-        setupNavFilters(exp);
-        drawEquityChart(exp, '2024-09-02', '2026-07-29');
-        drawDrawdownChart(exp, '2024-09-02', '2026-07-29');
-        drawCompareChart(contract(), '2024-09-02', '2026-07-29');
+        setupNavFilters(exp, isP22);
+        drawEquityChart(exp, '2024-09-02', fullEnd);
+        drawDrawdownChart(exp, '2024-09-02', fullEnd);
+        drawCompareChart(contract(), '2024-09-02', fullEnd);
     }
 
-    function setupNavFilters(exp) {
+    function setupNavFilters(exp, isP22) {
         const periodSel = document.getElementById('navPeriod');
         const customFrom = document.getElementById('customDateFrom');
         const customTo = document.getElementById('customDateTo');
@@ -866,6 +954,11 @@
         const dateTo = document.getElementById('navDateTo');
         const seriesSel = document.getElementById('navSeries');
         const resetBtn = document.getElementById('resetZoomBtn');
+
+        const fullEnd = isP22 ? '2026-11-19' : '2026-07-29';
+        const newWindowStart = isP22 ? '2026-07-30' : '2026-03-19';
+        const newWindowEnd = isP22 ? '2026-11-19' : '2026-07-29';
+        const oldWindowEnd = isP22 ? '2026-07-29' : '2026-03-18';
 
         const apply = function (from, to) {
             drawEquityChart(exp, from, to);
@@ -878,10 +971,11 @@
             const isCustom = val === 'custom';
             customFrom.style.display = isCustom ? 'block' : 'none';
             customTo.style.display = isCustom ? 'block' : 'none';
-            if (val === 'full') apply('2024-09-02', '2026-07-29');
+            if (val === 'full') apply('2024-09-02', fullEnd);
+            else if (val === 'p22_old') apply('2024-09-02', '2026-07-29');
             else if (val === 'old280') apply('2024-09-02', '2025-10-31');
-            else if (val === 'old370') apply('2024-09-02', '2026-03-18');
-            else if (val === 'new90') apply('2026-03-19', '2026-07-29');
+            else if (val === 'old370') apply('2024-09-02', oldWindowEnd);
+            else if (val === 'new90') apply(newWindowStart, newWindowEnd);
         });
 
         dateFrom.addEventListener('change', function () {
@@ -1212,7 +1306,9 @@
                     net_return_rate: p.net_return_rate,
                     holding_days: p.holding_days,
                     cumulative_realized_pnl: p.cumulative_realized_pnl,
-                    status: p.status
+                    status: p.status,
+                    unknown_fields: p.unknown_fields || [],
+                    trade_id: p.trade_id || null
                 };
             });
         });
@@ -1242,7 +1338,9 @@
                     net_pnl: pnlData ? pnlData.net_pnl : null,
                     net_return_rate: pnlData ? pnlData.net_return_rate : null,
                     holding_days: pnlData ? pnlData.holding_days : null,
-                    cumulative_realized_pnl: pnlData ? pnlData.cumulative_realized_pnl : null
+                    cumulative_realized_pnl: pnlData ? pnlData.cumulative_realized_pnl : null,
+                    unknown_fields: pnlData ? pnlData.unknown_fields : [],
+                    trade_id: pnlData ? pnlData.trade_id : (t.trade_id || null)
                 }));
             });
         });
@@ -1399,6 +1497,26 @@
 
     function renderTradesTable() {
         const filtered = getFilteredTrades();
+        // Apply sorting
+        const sortCol = state.sort.trades.column;
+        const sortDir = state.sort.trades.direction;
+        if (sortCol) {
+            filtered.sort(function (a, b) {
+                let va = a[sortCol];
+                let vb = b[sortCol];
+                // Handle null/undefined values
+                if (va === null || va === undefined) va = sortDir === 'asc' ? Infinity : -Infinity;
+                if (vb === null || vb === undefined) vb = sortDir === 'asc' ? Infinity : -Infinity;
+                // String comparison for non-numeric columns
+                if (typeof va === 'string' && typeof vb === 'string') {
+                    return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+                }
+                // Numeric comparison
+                if (va < vb) return sortDir === 'asc' ? -1 : 1;
+                if (va > vb) return sortDir === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
         const pageSize = state.pagination.trades.pageSize;
         let page = state.pagination.trades.page;
         const totalPages = Math.ceil(filtered.length / pageSize) || 1;
@@ -1437,10 +1555,10 @@
                 '<td class="mono">' + (fmt.isNum(t.commission) ? fmt.money(t.commission, 2) : naInline('缺佣金字段')) + '</td>' +
                 '<td class="mono">' + (fmt.isNum(t.tax) ? fmt.money(t.tax, 2) : naInline('缺印花税字段')) + '</td>' +
                 '<td>' + esc(t.reason || '-') + '</td>' +
-                '<td>' + pnlCell(netPnl, t.unknown_fields && t.unknown_fields.length ? t.unknown_fields.join(', ') : 'P&L数据缺失') + '</td>' +
-                '<td>' + pnlCell(netReturn, null, 4, true) + '</td>' +
-                '<td class="mono">' + (fmt.isNum(holding) ? holding : (isSell ? naInline('缺持有期') : absentZero('不适用'))) + '</td>' +
-                '<td>' + pnlCell(cumPnl, null) + '</td>' +
+                '<td>' + pnlCell(netPnl, t.unknown_fields && t.unknown_fields.length ? t.unknown_fields.join(', ') : (isSell ? 'P&L数据缺失' : '不适用')) + '</td>' +
+                '<td>' + pnlCell(netReturn, (t.unknown_fields && t.unknown_fields.length ? t.unknown_fields.join(', ') : '分母缺失或为0'), 4, true) + '</td>' +
+                '<td class="mono">' + (fmt.isNum(holding) ? holding : (isSell ? (t.unknown_fields && t.unknown_fields.length ? naCell(t.unknown_fields.join(', ')) : naInline('缺持有期')) : absentZero('不适用'))) + '</td>' +
+                '<td>' + pnlCell(cumPnl, isSell ? null : '不适用') + '</td>' +
                 '</tr>';
         }).join('');
         const tbody = document.getElementById('tradesTbody');
@@ -1690,6 +1808,138 @@
             '<div class="table-container"><table><thead><tr><th>代码</th><th>交易所</th></tr></thead><tbody>' +
             ((uni.bj_codes || []).map(function (s) { return '<tr><td class="mono">' + esc(s) + '</td><td>BJ</td></tr>'; }).join('') || '<tr><td colspan="2">暂无数据</td></tr>') +
             '</tbody></table></div></div></div>';
+    }
+
+    function renderV2P2(container) {
+        const st = state.data.v2_p2_status;
+        const cs = state.data.v2_p2_case;
+        
+        // P22 status based on actual deliverables (P9, P12, P20-E, P22)
+        const p22Status = {
+            items: [
+                {
+                    key: 'p22_risk_direction_fix',
+                    label: 'P22 风险评分方向修正',
+                    state: '已实现并在真实研究路径验证',
+                    detail: 'strength_score 当作 risk_score 使用的方向错误已确认；修正为 risk = clamp(5 - 涨跌幅×100, 0, 10)。仅修正退出评分方向与输入防护，不改买入/仓位/会计规则。',
+                    evidence: 'experiments_p22.json#A_fixed/C_fixed risk_fix_metadata.defect_fixed; 真实回测路径对比 A_original vs A_fixed',
+                    rule_ids: ['P22-R1']
+                },
+                {
+                    key: 'p22_research_backtest',
+                    label: 'P22 真实历史回测',
+                    state: '已实现并在真实研究路径验证',
+                    detail: '使用真实历史行情与财务数据运行四组 535 日回测（A_original/A_fixed/C_original/C_fixed），非 fixture。产出完整净值曲线、交易明细、分段统计。',
+                    evidence: 'experiments_p22.json 4 组各 535 点曲线、54/40/42/36 笔交易、期末权益与收益可核对',
+                    rule_ids: ['P22-R2']
+                },
+                {
+                    key: 'p22_raw_execution',
+                    label: 'P22 执行价格（未复权开盘价+滑点）',
+                    state: '使用代理实现',
+                    detail: '模拟成交使用未复权开盘价加固定滑点，不保证真实可成交；公司行为已实现分红、应收、支付、送转、可卖处理，列明核验范围、税后及不支持事项。',
+                    evidence: 'manifest.provisional_flags.raw_execution = false; corporate_actions 部分实现; price_mode=raw; 公司行为处理清单见版本历史',
+                    rule_ids: ['P22-R3']
+                },
+                {
+                    key: 'p22_financial_coverage',
+                    label: 'P22 财务数据与覆盖',
+                    state: '已实现样本级财务，非全覆盖',
+                    detail: '财务数据 16 只样本（银行不参与普通企业选股），并非 1932 只全覆盖。作为研究样本参与评分，非生产级硬门禁。',
+                    evidence: 'P9/P12 财务摄入产物 16 只样本; experiments_p22.json 风险修正元数据注明研究用途',
+                    rule_ids: ['P22-R4']
+                },
+                {
+                    key: 'p22_corporate_actions',
+                    label: 'P22 公司行为会计',
+                    state: '已实现核心事项，列明范围与不支持项',
+                    detail: '已实现分红（税后）、应收、支付、送转、可卖处理；不支持增发、配股、复杂重组；pre_close 变化不作为公司行为证据。',
+                    evidence: '版本历史 P9/P12/P20-E 公司行为处理清单; manifest.provisional_flags.corporate_actions 标注部分实现',
+                    rule_ids: ['P22-R5']
+                },
+                {
+                    key: 'p22_scoring_system',
+                    label: 'P22 风险评分（动量代理）',
+                    state: '已实现方向修正后的动量代理',
+                    detail: '风险评分为修正方向后的动量代理（risk = clamp(5 - 涨跌幅×100, 0, 10)），非完整资金流与承接模型；两层触发+第三层评分架构已接入，具体评分为代理实现。',
+                    evidence: 'experiments_p22.json risk_fix_metadata.fixed_label; v2_p2_status.json#readiness.scoring.fixture_scoring_available=true, production_scoring_configured=false',
+                    rule_ids: ['P22-R6']
+                },
+                {
+                    key: 'p22_growth_attribution',
+                    label: 'P22 增长归因',
+                    state: '解释用途，未成有效自动排序输入',
+                    detail: '增长归因（基本面 vs 估值 vs 流动性）仅作事后解释，未成为生产评分或自动排序的有效输入。',
+                    evidence: 'P20-E 归因研究产物; experiments_p22.json 无归因字段',
+                    rule_ids: ['P22-R7']
+                },
+                {
+                    key: 'p22_full_v2',
+                    label: 'P22 完整 V2 实现',
+                    state: '尚未全部实现',
+                    detail: '完整 V2 要求的生产财务全覆盖、完整资金流评分、公司行为全事项、增长归因自动化、实盘级执行均未全部实现。P22 为风险方向修正研究代理。',
+                    evidence: 'manifest.formal_baseline = P22-R1; v2_p2_status.json#readiness.status = v2_fixture_integrated_real_data_backtest_blocked',
+                    rule_ids: ['P22-R8']
+                },
+                {
+                    key: 'p22_strategy_validity',
+                    label: 'P22 策略有效性',
+                    state: '尚未证明',
+                    detail: '研究回测产出真实历史数据下的四组曲线与交易，但样本量、评分代理、执行代理、覆盖范围均限制结论推广；不构成策略有效性证明。',
+                    evidence: 'experiments_p22.json 四组收益均为负; 版本历史 accepted/not_accepted 边界明确区分',
+                    rule_ids: ['P22-R9']
+                }
+            ]
+        };
+        
+        const stateBadge = function (value) {
+            const text = String(value || '');
+            let cls = 'badge-neutral';
+            if (text.indexOf('已实现并在真实研究路径验证') >= 0 || text.indexOf('已实现样本级') >= 0 || text.indexOf('已实现核心') >= 0) cls = 'badge-success';
+            else if (text.indexOf('尚未证明') >= 0 || text.indexOf('尚未全部实现') >= 0) cls = 'badge-danger';
+            else if (text.indexOf('使用代理实现') >= 0 || text.indexOf('非全覆盖') >= 0 || text.indexOf('解释用途') >= 0 || text.indexOf('列明范围') >= 0) cls = 'badge-warning';
+            return '<span class="badge ' + cls + '">' + esc(text) + '</span>';
+        };
+        
+        const p22Rows = (p22Status.items || []).map(function (it) {
+            return '<tr><td><strong>' + esc(it.label) + '</strong><div class="sub mono">' + esc(it.key) + '</div></td>' +
+                '<td>' + stateBadge(it.state) + '</td>' +
+                '<td class="text-wrap">' + esc(it.detail) + '</td>' +
+                '<td class="text-wrap mono">' + esc(it.evidence || '') + '</td>' +
+                '<td class="mono">' + esc((it.rule_ids || []).join(', ')) + '</td></tr>';
+        }).join('');
+        
+        // Historical P2 status (read-only)
+        let historicalP2Html = '';
+        if (st && cs) {
+            const histRows = (st.items || []).map(function (it) {
+                return '<tr><td><strong>' + esc(it.label) + '</strong><div class="sub mono">' + esc(it.key) + '</div></td>' +
+                    '<td>' + stateBadge(it.state) + '</td>' +
+                    '<td class="text-wrap">' + esc(it.detail) + '</td>' +
+                    '<td class="text-wrap mono">' + esc(it.evidence || '') + '</td>' +
+                    '<td class="mono">' + esc((it.rule_ids || []).join(', ')) + '</td></tr>';
+            }).join('');
+            
+            historicalP2Html = '<div class="card" style="margin-top:24px;"><div class="card-header"><span class="card-title">P2 历史状态（只读，归档）</span>' +
+                '<span class="card-sub">完成状态 ' + esc(st.completion_status) + ' · 生成于 ' + esc(st.generated_at) + '</span></div><div class="card-body">' +
+                '<div class="alert alert-info"><strong>说明：</strong> 以下为早期 V2-P2 阶段状态（2026-07 基线），已被 P22 研究代理取代。不代表当前实施状态。</div>' +
+                '<div class="table-container"><table><thead><tr><th>项目</th><th>状态</th><th>说明</th><th>证据</th><th>规则</th></tr></thead><tbody>' +
+                histRows + '</tbody></table></div></div></div>';
+        }
+        
+        container.innerHTML = sectionHeader('P22 实施状态与 P2 历史归档',
+            'P22=风险评分方向修正研究代理（基于 P9/P12/P20-E/P22 真实产物）；P2=早期 V2 实施状态（已归档）') +
+            '<div class="alert alert-warning"><strong>关键事实：</strong> ' +
+            '真实历史回测已运行（四组 535 日），非 fixture；财务 16 只样本非全覆盖；公司行为已实现核心事项；' +
+            '风险评分为动量代理非完整模型；增长归因仅解释；完整 V2 尚未实现；策略有效性尚未证明。' +
+            '“未全覆盖”≠“未实现”；“未证明有效”≠“无真实回测”。</div>' +
+            '<div class="card"><div class="card-header"><span class="card-title">P22 当前实施状态及证据来源</span></div><div class="card-body">' +
+            '<div class="table-container"><table><thead><tr><th>项目</th><th>状态</th><th>说明</th><th>证据来源</th><th>规则</th></tr></thead><tbody>' +
+            p22Rows + '</tbody></table></div></div></div>' +
+            historicalP2Html +
+            '<div class="alert alert-info" style="margin-top:16px;"><strong>证据来源分类：</strong> ' +
+            '① 已实现并在真实研究路径验证 ② 使用代理实现 ③ 已实现样本级/核心事项 ④ 解释用途 ⑤ 尚未全部实现/证明。' +
+            '不得把旧状态全部粗暴改成"完成"；不得把"研究代理"写成"完整实现"；不得把"未全覆盖"写成"未实现"。</div>';
     }
 
     function renderHistory(container) {
