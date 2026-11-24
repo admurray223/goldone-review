@@ -41,6 +41,14 @@
 
     const COST_SCENARIO_LABEL = 'baseline · 单倍佣金/滑点';
 
+    // P22 explicit key mapping: experiment summary key → curve/trade key
+    const P22_KEY_MAP = {
+        'A_original': 'A-old',
+        'A_fixed': 'A-risk-fixed',
+        'C_original': 'C-old',
+        'C_fixed': 'C-risk-fixed'
+    };
+
     const SEGMENT_DEFS = [
         { key: 'old_280d', label: '旧280日', start: '2024-09-02', end: '2025-10-31' },
         { key: 'parent_new_window', label: 'D2B 新增90日', start: '2025-11-03', end: '2026-03-18' },
@@ -50,7 +58,7 @@
         // P22 segments
         { key: 'p22_full_window', label: 'P22完整535日', start: '2024-09-02', end: '2026-11-19' },
         { key: 'p22_old_window', label: 'P22旧窗口(至2026-07-29)', start: '2024-09-02', end: '2026-07-29' },
-        { key: 'p22_new_window', label: 'P22新增窗口(2026-08后)', start: '2026-08-01', end: '2026-11-19' }
+        { key: 'p22_new_window', label: 'P22新增窗口(2026-07-30起)', start: '2026-07-30', end: '2026-11-19' }
     ];
 
     const DATA_FILES = [
@@ -279,7 +287,7 @@
     }
 
     function computeBenchmarkP22Window(idx) {
-        const startPt = valueOnOrBefore(idx, '2026-08-01', 'close');
+        const startPt = valueOnOrBefore(idx, '2026-07-29', 'close');
         const endPt = valueOnOrBefore(idx, '2026-11-19', 'close');
         if (startPt && endPt && startPt.close > 0 && startPt.date < endPt.date) {
             return {
@@ -292,7 +300,7 @@
                 available: true
             };
         }
-        return { value: null, source: null, available: false, reason: 'index_data.json 未覆盖 2026-08-01~2026-11-19' };
+        return { value: null, source: null, available: false, reason: 'index_data.json 未覆盖 2026-07-29~2026-11-19' };
     }
 
     function deriveSegments(curve, trades, idx, initialEquity, impl, isP22) {
@@ -358,12 +366,24 @@
         const summaryKey = isP22 ? group + '_' + impl : group;
         const summary = ctx.exps[summaryKey] || null;
         
-        const curveKey = group + '_' + impl;
+        // Use explicit P22 key mapping for curves and trades
+        const curveKey = isP22 ? P22_KEY_MAP[summaryKey] : group + '_' + impl;
         const curve = Array.isArray(ctx.curves[curveKey]) ? ctx.curves[curveKey] : [];
-        const groupTrades = Array.isArray(ctx.tradesRaw[group]) ? ctx.tradesRaw[group] : [];
-        const trades = groupTrades.filter(function (t) {
-            return (t.variant || 'original') === impl;
-        });
+        
+        // For P22, trades are stored under the same keys as curves (A-old, A-risk-fixed, etc.)
+        // For non-P22, trades are stored under group (C, R) with variant filtering
+        let trades = [];
+        if (isP22) {
+            const tradeKey = curveKey; // Same key as curve for P22
+            const tradeData = Array.isArray(ctx.tradesRaw[tradeKey]) ? ctx.tradesRaw[tradeKey] : [];
+            // P22 trades already have correct variant in data, no filtering needed
+            trades = tradeData;
+        } else {
+            const groupTrades = Array.isArray(ctx.tradesRaw[group]) ? ctx.tradesRaw[group] : [];
+            trades = groupTrades.filter(function (t) {
+                return (t.variant || 'original') === impl;
+            });
+        }
         const initialEquity = (summary && fmt.isNum(summary.initial_equity))
             ? summary.initial_equity
             : (curve.length ? curve[0].total_equity : null);
@@ -474,13 +494,15 @@
                 equity_curve: curveAvailable ? '可用（' + curve.length + ' 个交易日）'
                     : '缺失（equity_curves.json#' + curveKey + '）',
                 trades: tradesAvailable ? '可用（' + trades.length + ' 笔）'
-                    : '缺失（trades.json#' + group + ' variant=' + impl + '）',
+                    : (isP22
+                        ? '缺失（trades.json#' + curveKey + '）'
+                        : '缺失（trades.json#' + group + ' variant=' + impl + '）'),
                 segments: curveAvailable ? '可用（由自身净值曲线推导）' : '缺失（无净值曲线，无法推导）'
             },
             source: {
                 summary: 'experiments.json#' + summaryKey,
                 equity_curve: 'equity_curves.json#' + curveKey,
-                trades: 'trades.json#' + group + '[variant=' + impl + ']',
+                trades: isP22 ? 'trades.json#' + curveKey : 'trades.json#' + group + '[variant=' + impl + ']',
                 segments: 'derived: equity_curves.json#' + curveKey + ' × index_data.json',
                 benchmark: benchmark.source || 'index_data.json'
             },
@@ -497,9 +519,14 @@
     }
 
     function buildContract() {
-        const exps = state.data.experiments || {};
-        const curves = state.data.equity_curves || {};
-        const tradesRaw = state.data.trades || {};
+        // Merge V1/V2 (experiments.json / equity_curves.json / trades.json) and
+        // P22 (experiments_p22.json / equity_curves_p22.json / trades_p22.json)
+        // namespaces. Keys are disjoint (C/R vs A_original/A-old/...), so a
+        // shallow merge is safe and keeps both the legacy and P22 experiments
+        // addressable from a single context.
+        const exps = Object.assign({}, state.data.experiments || {}, state.data.experiments_p22 || {});
+        const curves = Object.assign({}, state.data.equity_curves || {}, state.data.equity_curves_p22 || {});
+        const tradesRaw = Object.assign({}, state.data.trades || {}, state.data.trades_p22 || {});
         const segMetrics = state.data.segment_metrics || {};
         const idx = Array.isArray(state.data.index_data) ? state.data.index_data : [];
         const benchmarkNewWindow = computeBenchmarkNewWindow(idx, segMetrics);
@@ -565,16 +592,8 @@
             state.data[file.replace('.json', '')] = results[i];
         });
         
-        // Merge P22 data into main structures
-        if (state.data.experiments_p22) {
-            Object.assign(state.data.experiments, state.data.experiments_p22);
-        }
-        if (state.data.equity_curves_p22) {
-            Object.assign(state.data.equity_curves, state.data.equity_curves_p22);
-        }
-        if (state.data.trades_p22) {
-            Object.assign(state.data.trades, state.data.trades_p22);
-        }
+        // P22 data is merged into the contract context inside buildContract()
+        // (namespaced keys are disjoint from the V1/V2 keys, so no key conflicts).
         
         loadFeedback();
         const man = state.data.manifest || {};
@@ -891,15 +910,23 @@
                 '<div class="alert alert-warning">' + naCell(exp.availability_detail.equity_curve) + '</div>';
             return;
         }
+        const isP22 = exp.id.startsWith('p22_');
+        const fullEnd = isP22 ? '2026-11-19' : '2026-07-29';
+        const newWindowStart = isP22 ? '2026-07-30' : '2026-03-19';
+        const newWindowEnd = isP22 ? '2026-11-19' : '2026-07-29';
+        const fullLabel = isP22 ? 'P22完整535日' : '全区间 460日';
+        const newLabel = isP22 ? 'P22新增窗口' : '新90日';
+        
         container.innerHTML = sectionHeader('净值与回撤 · ' + exp.label,
             '主图为当前实验自身净值与沪深300基准；下方对比图为四组实验') +
             experimentBanner(exp) +
             '<div class="filter-bar" id="navFilters">' +
             '<div class="filter-group"><label>时间范围</label><select id="navPeriod">' +
-            '<option value="full">全区间 2024-09-02 ~ 2026-07-29</option>' +
-            '<option value="old280">旧280日 2024-09-02 ~ 2025-10-31</option>' +
-            '<option value="old370">旧370日 2024-09-02 ~ 2026-03-18</option>' +
-            '<option value="new90">新90日 2026-03-19 ~ 2026-07-29</option>' +
+            '<option value="full">' + fullLabel + ' 2024-09-02 ~ ' + fullEnd + '</option>' +
+            (isP22 ? '<option value="p22_old">P22旧窗口 2024-09-02 ~ 2026-07-29</option>' :
+                '<option value="old280">旧280日 2024-09-02 ~ 2025-10-31</option>' +
+                '<option value="old370">旧370日 2024-09-02 ~ 2026-03-18</option>') +
+            '<option value="new90">' + newLabel + ' ' + newWindowStart + ' ~ ' + newWindowEnd + '</option>' +
             '<option value="custom">自定义</option></select></div>' +
             '<div class="filter-group" id="customDateFrom" style="display:none;"><label>起始日期</label><input type="date" id="navDateFrom"></div>' +
             '<div class="filter-group" id="customDateTo" style="display:none;"><label>结束日期</label><input type="date" id="navDateTo"></div>' +
@@ -908,23 +935,23 @@
             '<button class="btn btn-secondary btn-sm" id="resetZoomBtn">重置缩放</button>' +
             '</div>' +
             '<div class="metric-grid compact">' +
-            metricCard('当前实验期末权益（2026-07-29）', moneyCell(metric(exp.equity_2026_07_29, '暂无数据', { dp: 6 }))) +
+            metricCard('当前实验期末权益（' + fullEnd + '）', moneyCell(metric(exp.equity_2026_07_29, '暂无数据', { dp: 6 }))) +
             metricCard('当前实验总收益', pctCell(metric(exp.total_return, '暂无数据', { dp: 2 }))) +
             metricCard('当前实验最大回撤', pctCell(metric(exp.max_drawdown, '暂无数据', { dp: 2 }))) +
-            metricCard('当前实验新90日收益', pctCell(metric(exp.new_90d_return, '暂无数据', { dp: 4 }))) +
+            metricCard('当前实验' + newLabel + '收益', pctCell(metric(exp.new_90d_return, '暂无数据', { dp: 4 }))) +
             '</div>' +
             '<div class="card"><div class="card-body"><div class="chart-container" style="height:460px;"><canvas id="equityChart"></canvas></div></div></div>' +
             '<div class="card" style="margin-top:20px;"><div class="card-body"><div class="chart-container" style="height:280px;"><canvas id="drawdownChart"></canvas></div></div></div>' +
             '<div class="card" style="margin-top:20px;"><div class="card-header"><span class="card-title">四组实验净值对比（绝对权益）</span></div>' +
             '<div class="card-body"><div class="chart-container" style="height:360px;"><canvas id="compareChart"></canvas></div></div></div>';
 
-        setupNavFilters(exp);
-        drawEquityChart(exp, '2024-09-02', '2026-07-29');
-        drawDrawdownChart(exp, '2024-09-02', '2026-07-29');
-        drawCompareChart(contract(), '2024-09-02', '2026-07-29');
+        setupNavFilters(exp, isP22);
+        drawEquityChart(exp, '2024-09-02', fullEnd);
+        drawDrawdownChart(exp, '2024-09-02', fullEnd);
+        drawCompareChart(contract(), '2024-09-02', fullEnd);
     }
 
-    function setupNavFilters(exp) {
+    function setupNavFilters(exp, isP22) {
         const periodSel = document.getElementById('navPeriod');
         const customFrom = document.getElementById('customDateFrom');
         const customTo = document.getElementById('customDateTo');
@@ -932,6 +959,11 @@
         const dateTo = document.getElementById('navDateTo');
         const seriesSel = document.getElementById('navSeries');
         const resetBtn = document.getElementById('resetZoomBtn');
+
+        const fullEnd = isP22 ? '2026-11-19' : '2026-07-29';
+        const newWindowStart = isP22 ? '2026-07-30' : '2026-03-19';
+        const newWindowEnd = isP22 ? '2026-11-19' : '2026-07-29';
+        const oldWindowEnd = isP22 ? '2026-07-29' : '2026-03-18';
 
         const apply = function (from, to) {
             drawEquityChart(exp, from, to);
@@ -944,10 +976,11 @@
             const isCustom = val === 'custom';
             customFrom.style.display = isCustom ? 'block' : 'none';
             customTo.style.display = isCustom ? 'block' : 'none';
-            if (val === 'full') apply('2024-09-02', '2026-07-29');
+            if (val === 'full') apply('2024-09-02', fullEnd);
+            else if (val === 'p22_old') apply('2024-09-02', '2026-07-29');
             else if (val === 'old280') apply('2024-09-02', '2025-10-31');
-            else if (val === 'old370') apply('2024-09-02', '2026-03-18');
-            else if (val === 'new90') apply('2026-03-19', '2026-07-29');
+            else if (val === 'old370') apply('2024-09-02', oldWindowEnd);
+            else if (val === 'new90') apply(newWindowStart, newWindowEnd);
         });
 
         dateFrom.addEventListener('change', function () {
@@ -1287,34 +1320,58 @@
         return lookup;
     }
 
-    function flattenTrades() {
+    function flattenTrades(experimentId) {
         const c = contract();
-        const raw = state.data.trades || {};
+        // Merge V1/V2 (trades.json) and P22 (trades_p22.json) namespaces; keys do not collide.
+        const raw = Object.assign({}, state.data.trades || {}, state.data.trades_p22 || {});
         const pnlLookup = buildPnLLookup();
         const out = [];
-        c.experiments.forEach(function (e) {
-            (raw[e.group] || []).forEach(function (t) {
-                if ((t.variant || 'original') !== e.implementation) return;
-                const isSell = t.side === 'sell';
-                const fillDate = t.fill_date || t.trade_date || '';
-                let pnlData = null;
-                if (isSell) {
-                    const key = e.group + '|' + e.implementation + '|' + t.symbol + '|' + fillDate + '|sell';
-                    pnlData = pnlLookup[key] || null;
-                }
-                out.push(Object.assign({}, t, {
-                    experiment_id: e.id,
-                    experiment_label: e.label,
-                    implementation: e.implementation,
-                    group: e.group,
-                    net_pnl: pnlData ? pnlData.net_pnl : null,
-                    net_return_rate: pnlData ? pnlData.net_return_rate : null,
-                    holding_days: pnlData ? pnlData.holding_days : null,
-                    cumulative_realized_pnl: pnlData ? pnlData.cumulative_realized_pnl : null,
-                    unknown_fields: pnlData ? pnlData.unknown_fields : [],
-                    trade_id: pnlData ? pnlData.trade_id : (t.trade_id || null)
-                }));
+        const targetExp = experimentId ? c.by_id[experimentId] : null;
+        if (!targetExp) {
+            // Return special marker for mapping missing
+            return { __error: 'mapping_missing', experimentId: experimentId };
+        }
+        const isP22 = targetExp.id.indexOf('p22_') === 0;
+        let sourceRows;
+        if (isP22) {
+            // P22 trades are keyed by the same explicit key as the curve
+            // (A-old / A-risk-fixed / C-old / C-risk-fixed); the stored variant
+            // already matches the experiment, so no extra variant filter is needed.
+            const tradeKey = P22_KEY_MAP[targetExp.group + '_' + targetExp.implementation];
+            if (!tradeKey || !Array.isArray(raw[tradeKey])) {
+                return { __error: 'data_missing', group: tradeKey || (targetExp.group + '_' + targetExp.implementation), experimentId: experimentId };
+            }
+            sourceRows = raw[tradeKey];
+        } else {
+            const groupData = raw[targetExp.group];
+            if (!groupData || !Array.isArray(groupData)) {
+                // Return special marker for data missing
+                return { __error: 'data_missing', group: targetExp.group, experimentId: experimentId };
+            }
+            sourceRows = groupData.filter(function (t) {
+                return (t.variant || 'original') === targetExp.implementation;
             });
+        }
+        sourceRows.forEach(function (t) {
+            const isSell = t.side === 'sell';
+            const fillDate = t.fill_date || t.trade_date || '';
+            let pnlData = null;
+            if (isSell) {
+                const key = targetExp.group + '|' + targetExp.implementation + '|' + t.symbol + '|' + fillDate + '|sell';
+                pnlData = pnlLookup[key] || null;
+            }
+            out.push(Object.assign({}, t, {
+                experiment_id: targetExp.id,
+                experiment_label: targetExp.label,
+                implementation: targetExp.implementation,
+                group: targetExp.group,
+                net_pnl: pnlData ? pnlData.net_pnl : null,
+                net_return_rate: pnlData ? pnlData.net_return_rate : null,
+                holding_days: pnlData ? pnlData.holding_days : null,
+                cumulative_realized_pnl: pnlData ? pnlData.cumulative_realized_pnl : null,
+                unknown_fields: pnlData ? pnlData.unknown_fields : [],
+                trade_id: pnlData ? pnlData.trade_id : (t.trade_id || null)
+            }));
         });
         return out;
     }
@@ -1322,46 +1379,79 @@
     function renderTrades(container) {
         const c = contract();
         const exp = currentExperiment();
-        tradesRows = flattenTrades().sort(function (a, b) {
-            const da = a.fill_date || a.trade_date || '';
-            const db = b.fill_date || b.trade_date || '';
-            return db.localeCompare(da);
-        });
-        const options = c.experiments.map(function (e) {
+        // Lock the experiment ID for this trades view
+        state.tradesLockedExperimentId = exp.id;
+        // Load trades ONLY for the current experiment
+        const loaded = flattenTrades(exp.id);
+        
+        // Check for error states from flattenTrades
+        if (loaded && loaded.__error) {
+            state.tradesError = loaded;
+            tradesRows = [];
+        } else {
+            state.tradesError = null;
+            tradesRows = loaded.sort(function (a, b) {
+                const da = a.fill_date || a.trade_date || '';
+                const db = b.fill_date || b.trade_date || '';
+                return db.localeCompare(da);
+            });
+        }
+        
+        // Build experiment options for the "All experiments" view (user must explicitly select)
+        const allOptions = c.experiments.map(function (e) {
             return '<option value="' + esc(e.id) + '">' + esc(e.label) + '（' + esc(e.implementation) + ' ' + esc(e.group) + '）</option>';
         }).join('');
+        
+        // Determine the current date range from nav filters or use experiment window
+        const navPeriodSel = document.getElementById('navPeriod');
+        let dateFrom = '', dateTo = '';
+        if (navPeriodSel) {
+            const val = navPeriodSel.value;
+            if (val === 'full') { dateFrom = '2024-09-02'; dateTo = exp.id.startsWith('p22_') ? '2026-11-19' : '2026-07-29'; }
+            else if (val === 'p22_old') { dateFrom = '2024-09-02'; dateTo = '2026-07-29'; }
+            else if (val === 'old280') { dateFrom = '2024-09-02'; dateTo = '2025-10-31'; }
+            else if (val === 'old370') { dateFrom = '2024-09-02'; dateTo = exp.id.startsWith('p22_') ? '2026-07-29' : '2026-03-18'; }
+            else if (val === 'new90') { dateFrom = exp.id.startsWith('p22_') ? '2026-07-30' : '2026-03-19'; dateTo = exp.id.startsWith('p22_') ? '2026-11-19' : '2026-07-29'; }
+        }
+        // Fallback to experiment window
+        if (!dateFrom) dateFrom = exp.window.start;
+        if (!dateTo) dateTo = exp.window.end;
+        
+        // Initialize filters with current experiment and date range
+        state.filters.trades = {
+            experiment: exp.id,  // Locked to current experiment by default
+            side: '',
+            reason: '',
+            pnl: '',
+            dateFrom: dateFrom,
+            dateTo: dateTo,
+            symbol: ''
+        };
+        
+        const stats = computeTradeStats(tradesRows, dateFrom, dateTo);
 
-        container.innerHTML = sectionHeader('交易浏览器 · ' + exp.label, '共 ' + tradesRows.length + ' 笔交易，可按实验切换') +
+        container.innerHTML = sectionHeader('交易明细 · ' + exp.label, 
+            '版本：' + esc(exp.implementation_label) + ' | 方案：' + esc(exp.group_label) + ' | 区间：' + esc(dateFrom) + ' ~ ' + esc(dateTo) + 
+            ' | 买入 ' + stats.buys + ' 笔 · 卖出 ' + stats.sells + ' 笔 · 合计 ' + stats.total + ' 笔') +
             experimentBanner(exp) +
-            '<div class="alert alert-warning"><strong>标注：</strong> 价格为 <code>adjusted_virtual</code> 空间；数量为 100 股整手近似；不等于真实证券账户成交记录。</div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">首笔风险成交（Fixed 组）</span></div><div class="card-body">' +
-            '<div class="table-container"><table><thead><tr><th>实验</th><th>代码</th><th>方向</th><th>signal_date</th><th>fill_date</th><th>价格</th><th>数量</th></tr></thead><tbody>' +
-            ['fixed_C_baseline', 'fixed_R_baseline'].map(function (id) {
-                const e = c.by_id[id];
-                const t = e.first_risk_trade;
-                if (!e.availability.trades) {
-                    return '<tr><td>' + esc(e.label) + '</td><td colspan="6">' + naCell('缺少交易明细') + '</td></tr>';
-                }
-                if (!t) {
-                    return '<tr><td>' + esc(e.label) + '</td><td colspan="6">' + absentZero('无 risk_three_layer 卖出') + '</td></tr>';
-                }
-                return '<tr><td>' + esc(e.label) + '</td><td class="mono">' + esc(t.symbol) + '</td><td>' + esc(t.side) + '</td>' +
-                    '<td class="mono">' + esc(t.signal_date || '-') + '</td><td class="mono">' + esc(t.fill_date || t.trade_date || '-') + '</td>' +
-                    '<td class="mono">' + fmt.money(t.price, 4) + '</td><td class="mono">' + fmt.money(t.quantity, 0) + '</td></tr>';
-            }).join('') + '</tbody></table></div></div></div>' +
+            '<div class="alert alert-warning"><strong>标注：</strong> 价格为 <code>' + esc(exp.price_mode || 'adjusted_virtual') + '</code> 空间；数量为 100 股整手近似；不等于真实证券账户成交记录。' +
+            (exp.id.startsWith('p22_') ? ' P22研究代理，非实盘授权。' : '') + '</div>' +
             '<div class="filter-bar" id="tradesFilters">' +
-            '<div class="filter-group"><label>实验</label><select id="filterExperiment">' +
-            '<option value="">全部四组</option>' + options + '</select></div>' +
+            '<div class="filter-group"><label>实验（当前锁定）</label><select id="filterExperiment" disabled>' +
+            '<option value="' + esc(exp.id) + '" selected>' + esc(exp.label) + '</option>' +
+            '<option value="" disabled>—— 跨实验合并需显式开启 ——</option>' +
+            allOptions + '</select></div>' +
             '<div class="filter-group"><label>买卖方向</label><select id="filterSide">' +
             '<option value="">全部</option><option value="buy">买入</option><option value="sell">卖出</option></select></div>' +
             '<div class="filter-group"><label>卖出原因</label><select id="filterReason">' +
             '<option value="">全部</option><option value="target_profit">Target Profit</option><option value="risk_three_layer">Risk Three Layer</option></select></div>' +
             '<div class="filter-group"><label>盈亏筛选</label><select id="filterPnL">' +
             '<option value="">全部</option><option value="profit">盈利</option><option value="loss">亏损</option></select></div>' +
-            '<div class="filter-group"><label>起始日期</label><input type="date" id="filterDateFrom"></div>' +
-            '<div class="filter-group"><label>结束日期</label><input type="date" id="filterDateTo"></div>' +
+            '<div class="filter-group"><label>成交起始日</label><input type="date" id="filterDateFrom" value="' + esc(dateFrom) + '"></div>' +
+            '<div class="filter-group"><label>成交结束日</label><input type="date" id="filterDateTo" value="' + esc(dateTo) + '"></div>' +
             '<div class="filter-group"><label>股票代码</label><input type="text" id="filterSymbol" placeholder="如 300987.SZ"></div>' +
-            '<button class="btn btn-secondary btn-sm" id="clearFiltersBtn">清空筛选</button></div>' +
+            '<button class="btn btn-secondary btn-sm" id="clearFiltersBtn">清除附加筛选</button></div>' +
+            '<div class="trade-stats" id="tradeStats">筛选后：' + stats.filtered + ' 条 / 区间内：' + stats.inRange + ' 条</div>' +
             '<div class="table-container"><table id="tradesTable"><thead><tr>' +
             '<th data-sort="experiment_label">实验</th><th data-sort="group">组</th><th data-sort="symbol">股票代码</th>' +
             '<th data-sort="side">方向</th><th data-sort="signal_date">信号日期</th><th data-sort="fill_date">成交日期</th>' +
@@ -1370,19 +1460,37 @@
             '<th data-sort="net_pnl">本次净盈亏(元)</th><th data-sort="net_return_rate">净收益率</th>' +
             '<th data-sort="holding_days">持有交易日</th><th data-sort="cumulative_realized_pnl">累计已实现净盈亏</th>' +
             '</tr></thead><tbody id="tradesTbody"></tbody></table></div>' +
-            '<div class="pagination"><div class="pagination-info" id="tradesInfo">共 0 条</div>' +
+            '<div class="pagination"><div class="pagination-info" id="tradesInfo"></div>' +
             '<div class="pagination-controls"><button class="pagination-btn" id="tradesPrev" disabled>上一页</button>' +
             '<span id="tradesPageInfo">第 1 / 1 页</span>' +
             '<button class="pagination-btn" id="tradesNext" disabled>下一页</button></div></div>';
 
-        state.filters.trades.experiment = exp.id;
-        setupTradesFilters();
+        setupTradesFilters(exp.id, dateFrom, dateTo);
         renderTradesTable();
     }
 
-    function setupTradesFilters() {
+    function computeTradeStats(rows, dateFrom, dateTo) {
+        // Handle error object from flattenTrades
+        if (rows && rows.__error) {
+            return { total: 0, inRange: 0, buys: 0, sells: 0, filtered: 0 };
+        }
+        let inRange = rows.filter(function(t) {
+            const d = t.fill_date || t.trade_date || '';
+            return d >= dateFrom && d <= dateTo;
+        });
+        const buys = inRange.filter(function(t) { return t.side === 'buy'; }).length;
+        const sells = inRange.filter(function(t) { return t.side === 'sell'; }).length;
+        return {
+            total: rows.length,
+            inRange: inRange.length,
+            buys: buys,
+            sells: sells,
+            filtered: inRange.length
+        };
+    }
+
+    function setupTradesFilters(lockedExperimentId, lockedDateFrom, lockedDateTo) {
         const map = {
-            filterExperiment: 'experiment',
             filterSide: 'side',
             filterReason: 'reason',
             filterPnL: 'pnl',
@@ -1390,20 +1498,26 @@
             filterDateTo: 'dateTo',
             filterSymbol: 'symbol'
         };
+        // Experiment filter is disabled and locked - don't include in map
         Object.keys(map).forEach(function (id) {
             const el = document.getElementById(id);
             if (!el) return;
             el.value = state.filters.trades[map[id]] || '';
-            const handler = utilsDebouncedApply();
+            const handler = utilsDebouncedApply(lockedExperimentId, lockedDateFrom, lockedDateTo);
             el.addEventListener('input', handler);
             el.addEventListener('change', handler);
         });
+        // Clear button only clears additional filters, keeps experiment and date range
         document.getElementById('clearFiltersBtn').addEventListener('click', function () {
-            state.filters.trades = { experiment: '', side: '', reason: '', pnl: '', dateFrom: '', dateTo: '', symbol: '' };
-            Object.keys(map).forEach(function (id) {
-                const el = document.getElementById(id);
-                if (el) el.value = '';
-            });
+            state.filters.trades.side = '';
+            state.filters.trades.reason = '';
+            state.filters.trades.pnl = '';
+            state.filters.trades.symbol = '';
+            // Keep experiment and date range locked
+            document.getElementById('filterSide').value = '';
+            document.getElementById('filterReason').value = '';
+            document.getElementById('filterPnL').value = '';
+            document.getElementById('filterSymbol').value = '';
             state.pagination.trades.page = 1;
             renderTradesTable();
         });
@@ -1427,7 +1541,7 @@
             }
         });
         document.getElementById('tradesNext').addEventListener('click', function () {
-            const totalPages = Math.ceil(getFilteredTrades().length / state.pagination.trades.pageSize);
+            const totalPages = Math.ceil(getFilteredTrades(lockedExperimentId).length / state.pagination.trades.pageSize);
             if (state.pagination.trades.page < totalPages) {
                 state.pagination.trades.page++;
                 renderTradesTable();
@@ -1435,24 +1549,29 @@
         });
     }
 
-    function utilsDebouncedApply() {
+    function utilsDebouncedApply(lockedExperimentId, lockedDateFrom, lockedDateTo) {
         return debounce(function () {
-            state.filters.trades.experiment = document.getElementById('filterExperiment').value;
+            // Experiment is locked - don't allow change via filter
+            state.filters.trades.experiment = lockedExperimentId;
             state.filters.trades.side = document.getElementById('filterSide').value;
             state.filters.trades.reason = document.getElementById('filterReason').value;
             state.filters.trades.pnl = document.getElementById('filterPnL').value;
-            state.filters.trades.dateFrom = document.getElementById('filterDateFrom').value;
-            state.filters.trades.dateTo = document.getElementById('filterDateTo').value;
+            state.filters.trades.dateFrom = document.getElementById('filterDateFrom').value || lockedDateFrom;
+            state.filters.trades.dateTo = document.getElementById('filterDateTo').value || lockedDateTo;
             state.filters.trades.symbol = document.getElementById('filterSymbol').value.trim().toUpperCase();
             state.pagination.trades.page = 1;
             renderTradesTable();
         }, 150);
     }
 
-    function getFilteredTrades() {
+    function getFilteredTrades(lockedExperimentId) {
         const f = state.filters.trades;
-        return tradesRows.filter(function (t) {
-            if (f.experiment && t.experiment_id !== f.experiment) return false;
+        // Always filter by locked experiment first
+        let rows = tradesRows.filter(function (t) {
+            return t.experiment_id === lockedExperimentId;
+        });
+        // Then apply additional filters
+        return rows.filter(function (t) {
             if (f.side && t.side !== f.side) return false;
             if (f.reason && t.reason !== f.reason) return false;
             if (f.pnl && t.side === 'sell') {
@@ -1468,7 +1587,54 @@
     }
 
     function renderTradesTable() {
-        const filtered = getFilteredTrades();
+        // Get locked experiment ID from state (set by renderTrades)
+        const lockedExperimentId = state.tradesLockedExperimentId || state.experimentId;
+        
+        // Case 3: Data loading failed, mapping missing, or structure error
+        if (state.tradesError) {
+            const err = state.tradesError;
+            let msg = '交易数据加载失败';
+            if (err.__error === 'mapping_missing') {
+                msg += '：实验映射不存在 (ID: ' + esc(err.experimentId) + ')';
+            } else if (err.__error === 'data_missing') {
+                msg += '：交易文件缺少该实验数据 (组: ' + esc(err.group) + ', ID: ' + esc(err.experimentId) + ')';
+            }
+            const tbody = document.getElementById('tradesTbody');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="16" class="sub text-danger">' + msg + '</td></tr>';
+            const info = document.getElementById('tradesInfo');
+            if (info) info.textContent = msg;
+            const statsEl = document.getElementById('tradeStats');
+            if (statsEl) statsEl.textContent = msg;
+            const pageInfo = document.getElementById('tradesPageInfo');
+            if (pageInfo) pageInfo.textContent = '第 0 / 0 页';
+            const prev = document.getElementById('tradesPrev');
+            const next = document.getElementById('tradesNext');
+            if (prev) prev.disabled = true;
+            if (next) next.disabled = true;
+            return;
+        }
+        
+        const filtered = getFilteredTrades(lockedExperimentId);
+        
+        // Case 1: Data loaded successfully, but date range has no trades
+        const inRange = tradesRows.filter(function(t) {
+            const d = t.fill_date || t.trade_date || '';
+            return d >= state.filters.trades.dateFrom && d <= state.filters.trades.dateTo;
+        });
+        
+        // Case 2: Date range has trades, but additional filters excluded all
+        const hasAdditionalFilters = state.filters.trades.side || 
+                                     state.filters.trades.reason || 
+                                     state.filters.trades.pnl || 
+                                     state.filters.trades.symbol;
+        
+        let emptyMessage = '';
+        if (inRange.length === 0) {
+            emptyMessage = '该区间无成交';
+        } else if (filtered.length === 0 && hasAdditionalFilters) {
+            emptyMessage = '没有符合筛选条件的成交';
+        }
+        
         // Apply sorting
         const sortCol = state.sort.trades.column;
         const sortDir = state.sort.trades.direction;
@@ -1534,9 +1700,14 @@
                 '</tr>';
         }).join('');
         const tbody = document.getElementById('tradesTbody');
-        if (tbody) tbody.innerHTML = rows || '<tr><td colspan="16" class="sub">当前筛选无交易记录</td></tr>';
+        if (tbody) tbody.innerHTML = rows || '<tr><td colspan="16" class="sub">' + esc(emptyMessage || '当前筛选无交易记录') + '</td></tr>';
+        
+        // Update stats display
+        const stats = computeTradeStats(tradesRows, state.filters.trades.dateFrom, state.filters.trades.dateTo);
         const info = document.getElementById('tradesInfo');
-        if (info) info.textContent = '共 ' + filtered.length + ' 条 / 全部 ' + tradesRows.length + ' 条';
+        if (info) info.textContent = '区间内：' + stats.inRange + ' 条（买 ' + stats.buys + ' / 卖 ' + stats.sells + '） / 筛选后：' + filtered.length + ' 条';
+        const statsEl = document.getElementById('tradeStats');
+        if (statsEl) statsEl.textContent = '区间内：' + stats.inRange + ' 条（买 ' + stats.buys + ' / 卖 ' + stats.sells + '） / 筛选后：' + filtered.length + ' 条';
         const pageInfo = document.getElementById('tradesPageInfo');
         if (pageInfo) pageInfo.textContent = '第 ' + page + ' / ' + totalPages + ' 页';
         const prev = document.getElementById('tradesPrev');
@@ -1785,114 +1956,133 @@
     function renderV2P2(container) {
         const st = state.data.v2_p2_status;
         const cs = state.data.v2_p2_case;
-        if (!st || !cs) {
-            container.innerHTML = sectionHeader('V2实施状态', 'P2 状态数据缺失') +
-                '<div class="alert alert-warning">缺少 v2_p2_status.json 或 v2_p2_case.json，无法展示 V2 实施状态。</div>';
-            return;
-        }
+        
+        // P22 status based on actual deliverables (P9, P12, P20-E, P22)
+        const p22Status = {
+            items: [
+                {
+                    key: 'p22_risk_direction_fix',
+                    label: 'P22 风险评分方向修正',
+                    state: '已实现并在真实研究路径验证',
+                    detail: 'strength_score 当作 risk_score 使用的方向错误已确认；修正为 risk = clamp(5 - 涨跌幅×100, 0, 10)。仅修正退出评分方向与输入防护，不改买入/仓位/会计规则。',
+                    evidence: 'experiments_p22.json#A_fixed/C_fixed risk_fix_metadata.defect_fixed; 真实回测路径对比 A_original vs A_fixed',
+                    rule_ids: ['P22-R1']
+                },
+                {
+                    key: 'p22_research_backtest',
+                    label: 'P22 真实历史回测',
+                    state: '已实现并在真实研究路径验证',
+                    detail: '使用真实历史行情与财务数据运行四组 535 日回测（A_original/A_fixed/C_original/C_fixed），非 fixture。产出完整净值曲线、交易明细、分段统计。',
+                    evidence: 'experiments_p22.json 4 组各 535 点曲线、54/40/42/36 笔交易、期末权益与收益可核对',
+                    rule_ids: ['P22-R2']
+                },
+                {
+                    key: 'p22_raw_execution',
+                    label: 'P22 执行价格（未复权开盘价+滑点）',
+                    state: '使用代理实现',
+                    detail: '模拟成交使用未复权开盘价加固定滑点，不保证真实可成交；公司行为已实现分红、应收、支付、送转、可卖处理，列明核验范围、税后及不支持事项。',
+                    evidence: 'manifest.provisional_flags.raw_execution = false; corporate_actions 部分实现; price_mode=raw; 公司行为处理清单见版本历史',
+                    rule_ids: ['P22-R3']
+                },
+                {
+                    key: 'p22_financial_coverage',
+                    label: 'P22 财务数据与覆盖',
+                    state: '已实现样本级财务，非全覆盖',
+                    detail: '财务数据 16 只样本（银行不参与普通企业选股），并非 1932 只全覆盖。作为研究样本参与评分，非生产级硬门禁。',
+                    evidence: 'P9/P12 财务摄入产物 16 只样本; experiments_p22.json 风险修正元数据注明研究用途',
+                    rule_ids: ['P22-R4']
+                },
+                {
+                    key: 'p22_corporate_actions',
+                    label: 'P22 公司行为会计',
+                    state: '已实现核心事项，列明范围与不支持项',
+                    detail: '已实现分红（税后）、应收、支付、送转、可卖处理；不支持增发、配股、复杂重组；pre_close 变化不作为公司行为证据。',
+                    evidence: '版本历史 P9/P12/P20-E 公司行为处理清单; manifest.provisional_flags.corporate_actions 标注部分实现',
+                    rule_ids: ['P22-R5']
+                },
+                {
+                    key: 'p22_scoring_system',
+                    label: 'P22 风险评分（动量代理）',
+                    state: '已实现方向修正后的动量代理',
+                    detail: '风险评分为修正方向后的动量代理（risk = clamp(5 - 涨跌幅×100, 0, 10)），非完整资金流与承接模型；两层触发+第三层评分架构已接入，具体评分为代理实现。',
+                    evidence: 'experiments_p22.json risk_fix_metadata.fixed_label; v2_p2_status.json#readiness.scoring.fixture_scoring_available=true, production_scoring_configured=false',
+                    rule_ids: ['P22-R6']
+                },
+                {
+                    key: 'p22_growth_attribution',
+                    label: 'P22 增长归因',
+                    state: '解释用途，未成有效自动排序输入',
+                    detail: '增长归因（基本面 vs 估值 vs 流动性）仅作事后解释，未成为生产评分或自动排序的有效输入。',
+                    evidence: 'P20-E 归因研究产物; experiments_p22.json 无归因字段',
+                    rule_ids: ['P22-R7']
+                },
+                {
+                    key: 'p22_full_v2',
+                    label: 'P22 完整 V2 实现',
+                    state: '尚未全部实现',
+                    detail: '完整 V2 要求的生产财务全覆盖、完整资金流评分、公司行为全事项、增长归因自动化、实盘级执行均未全部实现。P22 为风险方向修正研究代理。',
+                    evidence: 'manifest.formal_baseline = P22-R1; v2_p2_status.json#readiness.status = v2_fixture_integrated_real_data_backtest_blocked',
+                    rule_ids: ['P22-R8']
+                },
+                {
+                    key: 'p22_strategy_validity',
+                    label: 'P22 策略有效性',
+                    state: '尚未证明',
+                    detail: '研究回测产出真实历史数据下的四组曲线与交易，但样本量、评分代理、执行代理、覆盖范围均限制结论推广；不构成策略有效性证明。',
+                    evidence: 'experiments_p22.json 四组收益均为负; 版本历史 accepted/not_accepted 边界明确区分',
+                    rule_ids: ['P22-R9']
+                }
+            ]
+        };
+        
         const stateBadge = function (value) {
             const text = String(value || '');
             let cls = 'badge-neutral';
-            if (text.indexOf('已集成') >= 0 || text.indexOf('已确认') >= 0 || text.indexOf('已验证') >= 0) cls = 'badge-success';
-            else if (text.indexOf('不具备') >= 0 || text.indexOf('不足') >= 0 || text.indexOf('缺失') >= 0 || text.indexOf('待确认') >= 0) cls = 'badge-warning';
+            if (text.indexOf('已实现并在真实研究路径验证') >= 0 || text.indexOf('已实现样本级') >= 0 || text.indexOf('已实现核心') >= 0) cls = 'badge-success';
+            else if (text.indexOf('尚未证明') >= 0 || text.indexOf('尚未全部实现') >= 0) cls = 'badge-danger';
+            else if (text.indexOf('使用代理实现') >= 0 || text.indexOf('非全覆盖') >= 0 || text.indexOf('解释用途') >= 0 || text.indexOf('列明范围') >= 0) cls = 'badge-warning';
             return '<span class="badge ' + cls + '">' + esc(text) + '</span>';
         };
-        const statusRows = (st.items || []).map(function (it) {
+        
+        const p22Rows = (p22Status.items || []).map(function (it) {
             return '<tr><td><strong>' + esc(it.label) + '</strong><div class="sub mono">' + esc(it.key) + '</div></td>' +
                 '<td>' + stateBadge(it.state) + '</td>' +
                 '<td class="text-wrap">' + esc(it.detail) + '</td>' +
                 '<td class="text-wrap mono">' + esc(it.evidence || '') + '</td>' +
                 '<td class="mono">' + esc((it.rule_ids || []).join(', ')) + '</td></tr>';
         }).join('');
-        const blockerRows = ((st.readiness || {}).blockers || []).map(function (b) {
-            return '<tr><td class="mono">' + esc(b.code) + '</td><td class="text-wrap">' + esc(b.detail) +
-                '</td><td class="text-wrap">' + esc(b.required_for) + '</td></tr>';
-        }).join('') || '<tr><td colspan="3">无阻塞项</td></tr>';
-        const fin = (st.readiness || {}).financial_coverage || {};
-        const orderRows = (cs.orders || []).map(function (o) {
-            const fills = (o.fills || []).map(function (f) {
-                return esc(f.fill_date) + ' × ' + f.quantity + ' @ ' + fmt.money(f.fill_price, 4);
-            }).join('<br>') || '—';
-            return '<tr><td class="mono">' + esc(o.order_id) + '</td><td class="mono">' + esc(o.symbol) + '</td>' +
-                '<td>' + esc(o.side) + '</td><td>' + esc(o.status) + '</td><td class="mono">' + o.quantity +
-                '</td><td class="mono">' + esc(o.signal_date) + '</td><td class="text-wrap">' + fills +
-                '</td><td class="text-wrap">' + esc(o.reason) + '</td></tr>';
-        }).join('');
-        const reviewRows = (cs.reviews || []).map(function (r) {
-            const net = fmt.isNum(r.current_net_return) ? fmt.pct(r.current_net_return, 2) : naInline('行情缺失');
-            return '<tr><td class="mono">' + esc(r.review_date) + '</td><td class="mono">' + esc(r.symbol) +
-                '</td><td class="mono">' + r.holding_trading_days + '</td><td class="text-wrap">' +
-                esc((r.triggers || []).join(', ')) + '</td><td>' + esc(r.conclusion) + '</td>' +
-                '<td class="mono">' + net + '</td><td>' + esc(r.data_integrity) + '</td>' +
-                '<td class="text-wrap">' + esc(r.next_scheduled_review_date || '—') + '</td></tr>';
-        }).join('');
-        const dailyRows = (cs.daily || []).map(function (d) {
-            const checks = d.checks || {};
-            const ok = Object.keys(checks).filter(function (k) { return typeof checks[k] === 'boolean'; })
-                .every(function (k) { return checks[k]; });
-            return '<tr><td class="mono">' + esc(d.trade_date) + '</td><td class="mono">' + fmt.money(d.cash, 2) +
-                '</td><td class="mono">' + fmt.money(d.market_value, 2) + '</td><td class="mono">' + fmt.money(d.equity, 2) +
-                '</td><td class="mono">' + d.occupied_seats + '</td><td class="text-wrap mono">' +
-                esc(Object.keys(d.occupied_symbols || {}).join(', ') || '—') + '</td><td class="mono">' +
-                fmt.money(d.fees_cumulative, 2) + '</td><td>' + (ok ? '<span class="ok">通过</span>' : '<span class="miss">失败</span>') + '</td></tr>';
-        }).join('');
-        const summary = cs.summary || {};
-        container.innerHTML = sectionHeader('V2实施状态 · P2',
-            '五席位、财务硬门禁、5交易日与事件复核；fixture闭环已集成，正式数据仍受限') +
-            '<div class="alert alert-warning"><strong>功能演示：</strong>' + esc(cs.disclaimer || '') +
-            ' 本页 fixture 案例不与下方四组历史真实数据实验混算。</div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">实施状态</span>' +
-            '<span class="card-sub">完成状态 ' + esc(st.completion_status) + '</span></div><div class="card-body">' +
-            '<div class="table-container"><table><thead><tr><th>项目</th><th>状态</th><th>说明</th><th>证据</th><th>规则</th></tr></thead><tbody>' +
-            statusRows + '</tbody></table></div></div></div>' +
-            '<div class="metric-grid" style="margin-top:20px;">' +
-            metricCard('真实财务覆盖股票', '<span class="mono">' +
-                esc(fmt.isNum(fin.distinct_symbols) ? String(fin.distinct_symbols) : '暂无数据') +
-                ' / ' + esc(fmt.isNum(fin.expected_stock_days) ? '预期股票日 ' + fin.expected_stock_days : '预期股票日 暂无数据') +
-                '</span>') +
-            metricCard('sufficient 股票日覆盖', fmt.isNum(fin.sufficient_stock_day_coverage) ? fmt.pct(fin.sufficient_stock_day_coverage, 4) : naInline('缺字段')) +
-            metricCard('正式评分配置', ((st.readiness || {}).scoring || {}).production_scoring_configured ? '已配置' : '<span class="miss">未配置</span>') +
-            metricCard('正式收益曲线', (st.readiness || {}).status === 'v2_real_data_ready_for_formal_backtest' ? '具备' : '<span class="miss">不具备</span>') +
-            '</div>' +
-            '<div class="card" style="margin-top:20px;"><div class="card-header"><span class="card-title">真实数据阻塞项</span>' +
-            '<span class="card-sub">状态 ' + esc((st.readiness || {}).status) + '</span></div><div class="card-body">' +
-            '<div class="table-container"><table><thead><tr><th>代码</th><th>说明</th><th>影响</th></tr></thead><tbody>' +
-            blockerRows + '</tbody></table></div></div></div>' +
-            '<div class="card" style="margin-top:20px;"><div class="card-header"><span class="card-title">fixture 完整案例（功能演示）</span>' +
-            '<span class="card-sub">非正式回测，不与历史实验混合</span></div><div class="card-body">' +
-            '<div class="metric-grid">' +
-            metricCard('fixture 期末权益', fmt.money(summary.final_equity, 2), 'mono') +
-            metricCard('fixture 总收益', fmt.pct(summary.total_return, 4)) +
-            metricCard('fixture 费用', fmt.money(summary.total_fees, 2), 'mono') +
-            metricCard('fixture 已实现净盈亏', fmt.money(summary.total_realized_pnl, 2), 'mono') +
-            metricCard('订单数', String(summary.orders === undefined ? '暂无数据' : summary.orders)) +
-            metricCard('复核数', String(summary.reviews === undefined ? '暂无数据' : summary.reviews)) +
-            metricCard('退出信号', String(summary.exit_signals === undefined ? '暂无数据' : summary.exit_signals)) +
-            metricCard('NOT_EVALUABLE 复核', String(summary.not_evaluable_reviews === undefined ? '暂无数据' : summary.not_evaluable_reviews)) +
-            '</div></div></div>' +
-            '<div class="card" style="margin-top:20px;"><div class="card-header"><span class="card-title">fixture 订单与成交</span></div><div class="card-body">' +
-            '<div class="table-container"><table><thead><tr><th>订单</th><th>股票</th><th>方向</th><th>状态</th><th>数量</th><th>信号日</th><th>成交</th><th>原因</th></tr></thead><tbody>' +
-            orderRows + '</tbody></table></div></div></div>' +
-            '<div class="card" style="margin-top:20px;"><div class="card-header"><span class="card-title">fixture 持有复核</span></div><div class="card-body">' +
-            '<div class="table-container" style="max-height:520px;overflow:auto;"><table><thead><tr><th>复核日</th><th>股票</th><th>持有交易日</th><th>触发</th><th>结论</th><th>当前净收益</th><th>数据完整性</th><th>下一定期复核</th></tr></thead><tbody>' +
-            reviewRows + '</tbody></table></div></div></div>' +
-            '<div class="card" style="margin-top:20px;"><div class="card-header"><span class="card-title">fixture 每日席位与资金对账</span></div><div class="card-body">' +
-            '<div class="table-container" style="max-height:520px;overflow:auto;"><table><thead><tr><th>日期</th><th>现金</th><th>市值</th><th>权益</th><th>占用席位</th><th>占用股票</th><th>累计费用</th><th>对账</th></tr></thead><tbody>' +
-            dailyRows + '</tbody></table></div></div></div>' +
-            '<div class="card" style="margin-top:20px;"><div class="card-header"><span class="card-title">fixture 等待候选</span>' +
-            '<span class="card-sub">满5只时不卖旧持仓，等待席位并在信号日重新核验</span></div><div class="card-body">' +
-            '<div class="table-container"><table><thead><tr><th>候选</th><th>优先级</th><th>等待原因</th><th>提升尝试</th><th>最近拒绝原因</th></tr></thead><tbody>' +
-            ((cs.wait_queue || []).map(function (w) {
-                const hist = (w.reject_history || []);
-                const last = hist.length ? hist[hist.length - 1] : null;
-                return '<tr><td class="mono">' + esc(w.symbol) + '</td><td class="mono">' + w.priority +
-                    '</td><td class="text-wrap">' + esc(w.queued_reason || '') + '</td><td class="mono">' +
-                    w.promotion_attempts + '</td><td class="text-wrap">' +
-                    esc(last ? (last.reason + (last.details ? ': ' + (Array.isArray(last.details) ? last.details.join(', ') : last.details) : '')) : '—') +
-                    '</td></tr>';
-            }).join('') || '<tr><td colspan="5">无等待候选</td></tr>') +
-            '</tbody></table></div></div></div>' +
-            '<div class="alert alert-info" style="margin-top:16px;"><strong>边界：</strong> 历史V1的两百多只持仓不代表V2；本页四条历史实验仍按各自 Original/Fixed × C/R 口径展示，不被V2 fixture案例改写。</div>';
+        
+        // Historical P2 status (read-only)
+        let historicalP2Html = '';
+        if (st && cs) {
+            const histRows = (st.items || []).map(function (it) {
+                return '<tr><td><strong>' + esc(it.label) + '</strong><div class="sub mono">' + esc(it.key) + '</div></td>' +
+                    '<td>' + stateBadge(it.state) + '</td>' +
+                    '<td class="text-wrap">' + esc(it.detail) + '</td>' +
+                    '<td class="text-wrap mono">' + esc(it.evidence || '') + '</td>' +
+                    '<td class="mono">' + esc((it.rule_ids || []).join(', ')) + '</td></tr>';
+            }).join('');
+            
+            historicalP2Html = '<div class="card" style="margin-top:24px;"><div class="card-header"><span class="card-title">P2 历史状态（只读，归档）</span>' +
+                '<span class="card-sub">完成状态 ' + esc(st.completion_status) + ' · 生成于 ' + esc(st.generated_at) + '</span></div><div class="card-body">' +
+                '<div class="alert alert-info"><strong>说明：</strong> 以下为早期 V2-P2 阶段状态（2026-07 基线），已被 P22 研究代理取代。不代表当前实施状态。</div>' +
+                '<div class="table-container"><table><thead><tr><th>项目</th><th>状态</th><th>说明</th><th>证据</th><th>规则</th></tr></thead><tbody>' +
+                histRows + '</tbody></table></div></div></div>';
+        }
+        
+        container.innerHTML = sectionHeader('P22 实施状态与 P2 历史归档',
+            'P22=风险评分方向修正研究代理（基于 P9/P12/P20-E/P22 真实产物）；P2=早期 V2 实施状态（已归档）') +
+            '<div class="alert alert-warning"><strong>关键事实：</strong> ' +
+            '真实历史回测已运行（四组 535 日），非 fixture；财务 16 只样本非全覆盖；公司行为已实现核心事项；' +
+            '风险评分为动量代理非完整模型；增长归因仅解释；完整 V2 尚未实现；策略有效性尚未证明。' +
+            '“未全覆盖”≠“未实现”；“未证明有效”≠“无真实回测”。</div>' +
+            '<div class="card"><div class="card-header"><span class="card-title">P22 当前实施状态及证据来源</span></div><div class="card-body">' +
+            '<div class="table-container"><table><thead><tr><th>项目</th><th>状态</th><th>说明</th><th>证据来源</th><th>规则</th></tr></thead><tbody>' +
+            p22Rows + '</tbody></table></div></div></div>' +
+            historicalP2Html +
+            '<div class="alert alert-info" style="margin-top:16px;"><strong>证据来源分类：</strong> ' +
+            '① 已实现并在真实研究路径验证 ② 使用代理实现 ③ 已实现样本级/核心事项 ④ 解释用途 ⑤ 尚未全部实现/证明。' +
+            '不得把旧状态全部粗暴改成"完成"；不得把"研究代理"写成"完整实现"；不得把"未全覆盖"写成"未实现"。</div>';
     }
 
     function renderHistory(container) {

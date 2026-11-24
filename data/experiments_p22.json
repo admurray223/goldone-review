@@ -1,7 +1,7 @@
 {
   "A_original": {
     "group": "A",
-    "price_mode": "adjusted_virtual",
+    "price_mode": "raw",
     "sector_basis": "formal_bj_free",
     "window": {
       "start": "2024-09-02",
@@ -31,7 +31,7 @@
         "max_drawdown": -0.2207133140319235
       },
       "new_window": {
-        "start_date": "2026-08-01",
+        "start_date": "2026-07-30",
         "end_date": "2026-11-19",
         "trade_days": 75,
         "initial_equity": 873954.07,
@@ -65,7 +65,7 @@
   },
   "A_fixed": {
     "group": "A",
-    "price_mode": "adjusted_virtual",
+    "price_mode": "raw",
     "sector_basis": "formal_bj_free",
     "window": {
       "start": "2024-09-02",
@@ -95,7 +95,7 @@
         "max_drawdown": -0.2955818300888077
       },
       "new_window": {
-        "start_date": "2026-08-01",
+        "start_date": "2026-07-30",
         "end_date": "2026-11-19",
         "trade_days": 75,
         "initial_equity": 776263.26,
@@ -129,7 +129,7 @@
   },
   "C_original": {
     "group": "C",
-    "price_mode": "adjusted_virtual",
+    "price_mode": "raw",
     "sector_basis": "formal_bj_free",
     "window": {
       "start": "2024-09-02",
@@ -159,7 +159,7 @@
         "max_drawdown": -0.23319541612379946
       },
       "new_window": {
-        "start_date": "2026-08-01",
+        "start_date": "2026-07-30",
         "end_date": "2026-11-19",
         "trade_days": 75,
         "initial_equity": 835902.3,
@@ -193,7 +193,7 @@
   },
   "C_fixed": {
     "group": "C",
-    "price_mode": "adjusted_virtual",
+    "price_mode": "raw",
     "sector_basis": "formal_bj_free",
     "window": {
       "start": "2024-09-02",
@@ -223,7 +223,7 @@
         "max_drawdown": -0.2907938167753984
       },
       "new_window": {
-        "start_date": "2026-08-01",
+        "start_date": "2026-07-30",
         "end_date": "2026-11-19",
         "trade_days": 75,
         "initial_equity": 782233.69,

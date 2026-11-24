@@ -519,9 +519,14 @@
     }
 
     function buildContract() {
-        const exps = state.data.experiments || {};
-        const curves = state.data.equity_curves || {};
-        const tradesRaw = state.data.trades || {};
+        // Merge V1/V2 (experiments.json / equity_curves.json / trades.json) and
+        // P22 (experiments_p22.json / equity_curves_p22.json / trades_p22.json)
+        // namespaces. Keys are disjoint (C/R vs A_original/A-old/...), so a
+        // shallow merge is safe and keeps both the legacy and P22 experiments
+        // addressable from a single context.
+        const exps = Object.assign({}, state.data.experiments || {}, state.data.experiments_p22 || {});
+        const curves = Object.assign({}, state.data.equity_curves || {}, state.data.equity_curves_p22 || {});
+        const tradesRaw = Object.assign({}, state.data.trades || {}, state.data.trades_p22 || {});
         const segMetrics = state.data.segment_metrics || {};
         const idx = Array.isArray(state.data.index_data) ? state.data.index_data : [];
         const benchmarkNewWindow = computeBenchmarkNewWindow(idx, segMetrics);
@@ -587,8 +592,8 @@
             state.data[file.replace('.json', '')] = results[i];
         });
         
-        // P22 data is kept separate and accessed via explicit key mapping in buildExperiment
-        // No Object.assign merge to avoid key conflicts between V1/V2/P22 namespaces
+        // P22 data is merged into the contract context inside buildContract()
+        // (namespaced keys are disjoint from the V1/V2 keys, so no key conflicts).
         
         loadFeedback();
         const man = state.data.manifest || {};
@@ -1317,7 +1322,8 @@
 
     function flattenTrades(experimentId) {
         const c = contract();
-        const raw = state.data.trades || {};
+        // Merge V1/V2 (trades.json) and P22 (trades_p22.json) namespaces; keys do not collide.
+        const raw = Object.assign({}, state.data.trades || {}, state.data.trades_p22 || {});
         const pnlLookup = buildPnLLookup();
         const out = [];
         const targetExp = experimentId ? c.by_id[experimentId] : null;
@@ -1325,13 +1331,28 @@
             // Return special marker for mapping missing
             return { __error: 'mapping_missing', experimentId: experimentId };
         }
-        const groupData = raw[targetExp.group];
-        if (!groupData || !Array.isArray(groupData)) {
-            // Return special marker for data missing
-            return { __error: 'data_missing', group: targetExp.group, experimentId: experimentId };
+        const isP22 = targetExp.id.indexOf('p22_') === 0;
+        let sourceRows;
+        if (isP22) {
+            // P22 trades are keyed by the same explicit key as the curve
+            // (A-old / A-risk-fixed / C-old / C-risk-fixed); the stored variant
+            // already matches the experiment, so no extra variant filter is needed.
+            const tradeKey = P22_KEY_MAP[targetExp.group + '_' + targetExp.implementation];
+            if (!tradeKey || !Array.isArray(raw[tradeKey])) {
+                return { __error: 'data_missing', group: tradeKey || (targetExp.group + '_' + targetExp.implementation), experimentId: experimentId };
+            }
+            sourceRows = raw[tradeKey];
+        } else {
+            const groupData = raw[targetExp.group];
+            if (!groupData || !Array.isArray(groupData)) {
+                // Return special marker for data missing
+                return { __error: 'data_missing', group: targetExp.group, experimentId: experimentId };
+            }
+            sourceRows = groupData.filter(function (t) {
+                return (t.variant || 'original') === targetExp.implementation;
+            });
         }
-        groupData.forEach(function (t) {
-            if ((t.variant || 'original') !== targetExp.implementation) return;
+        sourceRows.forEach(function (t) {
             const isSell = t.side === 'sell';
             const fillDate = t.fill_date || t.trade_date || '';
             let pnlData = null;
