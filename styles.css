@@ -88,6 +88,12 @@ body {
     border-bottom: 1px solid var(--border-color);
     gap: 24px;
     flex-wrap: wrap;
+    /* Prevent header from intercepting clicks on children; enable on interactive elements */
+    pointer-events: none;
+}
+
+.header * {
+    pointer-events: auto;
 }
 
 .header-left {
