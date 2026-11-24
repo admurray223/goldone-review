@@ -114,6 +114,8 @@ body {
     color: white;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    /* Prevent version badge from intercepting nav clicks */
+    pointer-events: none;
 }
 
 .main-nav {
