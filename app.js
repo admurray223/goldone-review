@@ -18,17 +18,25 @@
         { id: 'original_C_baseline', implementation: 'original', group: 'C' },
         { id: 'original_R_baseline', implementation: 'original', group: 'R' },
         { id: 'fixed_C_baseline', implementation: 'fixed', group: 'C' },
-        { id: 'fixed_R_baseline', implementation: 'fixed', group: 'R' }
+        { id: 'fixed_R_baseline', implementation: 'fixed', group: 'R' },
+        // P22 Risk Score Direction Fix experiments
+        { id: 'p22_A_original', implementation: 'original', group: 'A' },
+        { id: 'p22_A_fixed', implementation: 'fixed', group: 'A' },
+        { id: 'p22_C_original', implementation: 'original', group: 'C' },
+        { id: 'p22_C_fixed', implementation: 'fixed', group: 'C' }
     ];
 
     const GROUP_LABELS = {
         C: 'Group C · 评分优先',
-        R: 'Group R · 随机/其他'
+        R: 'Group R · 随机/其他',
+        A: 'Group A · P22-R1'
     };
 
     const IMPL_LABELS = {
         original: 'Original（含已确认风险状态缺陷）',
-        fixed: 'Fixed（状态映射已修复，策略表达待审阅）'
+        fixed: 'Fixed（状态映射已修复，策略表达待审阅）',
+        p22_original: 'P22旧评分方向（已确认语义错误）',
+        p22_fixed: 'P22修正风险评分方向'
     };
 
     const COST_SCENARIO_LABEL = 'baseline · 单倍佣金/滑点';
@@ -38,7 +46,11 @@
         { key: 'parent_new_window', label: 'D2B 新增90日', start: '2025-11-03', end: '2026-03-18' },
         { key: 'old_window', label: '旧370日', start: '2024-09-02', end: '2026-03-18' },
         { key: 'new_window', label: 'D2C 新增90日', start: '2026-03-19', end: '2026-07-29' },
-        { key: 'full_period', label: '完整460日', start: '2024-09-02', end: '2026-07-29' }
+        { key: 'full_period', label: '完整460日', start: '2024-09-02', end: '2026-07-29' },
+        // P22 segments
+        { key: 'p22_full_window', label: 'P22完整535日', start: '2024-09-02', end: '2026-11-19' },
+        { key: 'p22_old_window', label: 'P22旧窗口(至2026-07-29)', start: '2024-09-02', end: '2026-07-29' },
+        { key: 'p22_new_window', label: 'P22新增窗口(2026-08后)', start: '2026-08-01', end: '2026-11-19' }
     ];
 
     const DATA_FILES = [
@@ -69,8 +81,10 @@
         'reconciliation.json',
         'v2_p2_status.json',
         'v2_p2_case.json',
-        'v2_review.json',
-        'v2_trade_notes.json'
+        // P22 data files
+        'experiments_p22.json',
+        'equity_curves_p22.json',
+        'trades_p22.json'
     ];
 
     const state = {
@@ -88,15 +102,6 @@
         },
         sort: {
             trades: { column: 'fill_date', direction: 'desc' }
-        },
-        v2: {
-            variant: 'A',
-            period: 'full',
-            timelinePage: 1,
-            tradePage: 1,
-            tradeSymbol: '',
-            tradeSort: { column: 'fill_date', direction: 'desc' },
-            whyPage: 1
         }
     };
 
@@ -273,7 +278,24 @@
         return { value: null, source: null, available: false, reason: 'index_data.json 未覆盖 2026-03-18~2026-07-29' };
     }
 
-    function deriveSegments(curve, trades, idx, initialEquity, impl) {
+    function computeBenchmarkP22Window(idx) {
+        const startPt = valueOnOrBefore(idx, '2026-08-01', 'close');
+        const endPt = valueOnOrBefore(idx, '2026-11-19', 'close');
+        if (startPt && endPt && startPt.close > 0 && startPt.date < endPt.date) {
+            return {
+                value: endPt.close / startPt.close - 1,
+                start_date: startPt.date,
+                end_date: endPt.date,
+                start_close: startPt.close,
+                end_close: endPt.close,
+                source: 'index_data.json 000300.SH close ' + startPt.date + ' -> ' + endPt.date,
+                available: true
+            };
+        }
+        return { value: null, source: null, available: false, reason: 'index_data.json 未覆盖 2026-08-01~2026-11-19' };
+    }
+
+    function deriveSegments(curve, trades, idx, initialEquity, impl, isP22) {
         return SEGMENT_DEFS.map(function (def) {
             const row = {
                 key: def.key,
@@ -321,15 +343,21 @@
             row.trade_count = windowTrades.length;
             row.buys = windowTrades.filter(function (t) { return t.side === 'buy'; }).length;
             row.sells = windowTrades.filter(function (t) { return t.side === 'sell'; }).length;
-            row.source = 'derived: own equity curve (' + (impl === 'fixed' ? 'fixed' : 'original') + ') × index_data.json';
+            const implLabel = isP22 ? (impl === 'fixed' ? 'P22修正' : 'P22旧') : (impl === 'fixed' ? 'fixed' : 'original');
+            row.source = 'derived: own equity curve (' + implLabel + ') × index_data.json';
             return row;
         });
     }
 
     function buildExperiment(def, ctx) {
-        const summary = ctx.exps[def.group] || null;
+        const isP22 = def.id.startsWith('p22_');
         const impl = def.implementation;
         const group = def.group;
+        
+        // For P22, the summary key includes both group and implementation
+        const summaryKey = isP22 ? group + '_' + impl : group;
+        const summary = ctx.exps[summaryKey] || null;
+        
         const curveKey = group + '_' + impl;
         const curve = Array.isArray(ctx.curves[curveKey]) ? ctx.curves[curveKey] : [];
         const groupTrades = Array.isArray(ctx.tradesRaw[group]) ? ctx.tradesRaw[group] : [];
@@ -349,22 +377,24 @@
             : (fmt.isNum(finalEquity) && fmt.isNum(initialEquity) && initialEquity > 0
                 ? finalEquity / initialEquity - 1 : null);
 
-        const eq0318Curve = valueOnOrBefore(curve, '2026-03-18', 'total_equity');
-        const eq0318Summary = summary && summary.segments
+        // P22 uses different boundary dates
+        const boundaryDate = isP22 ? '2026-07-29' : '2026-03-18';
+        const eqBoundaryCurve = valueOnOrBefore(curve, boundaryDate, 'total_equity');
+        const eqBoundarySummary = summary && summary.segments
             ? (impl === 'fixed'
-                ? (summary.segments.new_window_fixed || {}).opening_equity
+                ? (summary.segments.new_window || {}).opening_equity
                 : (summary.segments.old_window || {}).end_equity)
             : undefined;
-        const eq0318 = fmt.isNum(eq0318Curve) ? eq0318Curve
-            : (fmt.isNum(eq0318Summary) ? eq0318Summary : null);
-        const eq0729Curve = valueOnOrBefore(curve, '2026-07-29', 'total_equity');
-        const eq0729 = fmt.isNum(eq0729Curve) ? eq0729Curve : finalEquity;
+        const eqBoundary = fmt.isNum(eqBoundaryCurve) ? eqBoundaryCurve
+            : (fmt.isNum(eqBoundarySummary) ? eqBoundarySummary : null);
+        const eqEndCurve = valueOnOrBefore(curve, '2026-11-19', 'total_equity');
+        const eqEnd = fmt.isNum(eqEndCurve) ? eqEndCurve : finalEquity;
 
-        const new90 = (fmt.isNum(eq0729) && fmt.isNum(eq0318) && eq0318 > 0)
-            ? eq0729 / eq0318 - 1 : null;
-        const benchmark = ctx.benchmarkNewWindow;
-        const new90Excess = (fmt.isNum(new90) && benchmark.available && fmt.isNum(benchmark.value))
-            ? new90 - benchmark.value : null;
+        const newWindowReturn = (fmt.isNum(eqEnd) && fmt.isNum(eqBoundary) && eqBoundary > 0)
+            ? eqEnd / eqBoundary - 1 : null;
+        const benchmark = isP22 ? ctx.benchmarkP22Window : ctx.benchmarkNewWindow;
+        const newWindowExcess = (fmt.isNum(newWindowReturn) && benchmark.available && fmt.isNum(benchmark.value))
+            ? newWindowReturn - benchmark.value : null;
 
         const tradeCount = summary && fmt.isNum(summary['trade_count_' + impl])
             ? summary['trade_count_' + impl] : (trades.length || 0);
@@ -392,7 +422,7 @@
             }
         }
 
-        const segments = deriveSegments(curve, trades, ctx.idx, initialEquity, impl);
+        const segments = deriveSegments(curve, trades, ctx.idx, initialEquity, impl, isP22);
         const segmentByKey = {};
         segments.forEach(function (s) { segmentByKey[s.key] = s; });
 
@@ -400,11 +430,14 @@
         const tradesAvailable = trades.length > 0;
         const summaryAvailable = fmt.isNum(finalEquity);
 
+        const labelPrefix = isP22 ? (impl === 'fixed' ? 'P22修正 ' : 'P22旧 ') : (impl === 'fixed' ? 'Fixed ' : 'Original ');
+        const implLabel = isP22 ? (impl === 'fixed' ? 'P22修正风险评分方向' : 'P22旧评分方向（已确认语义错误）') : IMPL_LABELS[impl];
+
         return {
             id: def.id,
-            label: (impl === 'fixed' ? 'Fixed ' : 'Original ') + group,
+            label: labelPrefix + group,
             implementation: impl,
-            implementation_label: IMPL_LABELS[impl],
+            implementation_label: implLabel,
             group: group,
             group_label: GROUP_LABELS[group],
             cost_scenario: COST_SCENARIO_LABEL,
@@ -413,12 +446,12 @@
             initial_equity: initialEquity,
             final_equity: finalEquity,
             total_return: totalReturn,
-            equity_2026_03_18: eq0318,
-            equity_2026_07_29: eq0729,
-            new_90d_return: new90,
+            equity_2026_03_18: isP22 ? null : eqBoundary,  // P22 uses 2026-07-29 as boundary
+            equity_2026_07_29: eqBoundary,
+            new_90d_return: newWindowReturn,
             benchmark_new_90d: benchmark.value,
             benchmark_source: benchmark.source,
-            new_90d_excess: new90Excess,
+            new_90d_excess: newWindowExcess,
             max_drawdown: curveAvailable ? maxDrawdownOf(curve, initialEquity) : null,
             trade_count: tradeCount,
             buys: buys,
@@ -445,7 +478,7 @@
                 segments: curveAvailable ? '可用（由自身净值曲线推导）' : '缺失（无净值曲线，无法推导）'
             },
             source: {
-                summary: 'experiments.json#' + group,
+                summary: 'experiments.json#' + summaryKey,
                 equity_curve: 'equity_curves.json#' + curveKey,
                 trades: 'trades.json#' + group + '[variant=' + impl + ']',
                 segments: 'derived: equity_curves.json#' + curveKey + ' × index_data.json',
@@ -453,9 +486,13 @@
             },
             risk_fix_metadata: summary ? summary.risk_fix_metadata : null,
             curve_key: curveKey,
-            note: impl === 'original'
-                ? 'Original 组含已确认风险状态缺陷（sector_gate weakening != weak），仅作历史对照。'
-                : 'Fixed 组已修复状态映射，但策略表达仍待用户审阅，不等于已接受策略。'
+            note: isP22
+                ? (impl === 'original'
+                    ? 'P22旧评分方向：strength_score 当作 risk_score 使用，方向颠倒（卖强持弱），已确认语义错误，历史记录保留。'
+                    : 'P22修正风险评分方向：risk = clamp(5 - 涨跌幅×100, 0, 10)，仅修正退出评分方向与输入防护，不改买入/仓位/会计规则。研究代理，非实盘授权。')
+                : (impl === 'original'
+                    ? 'Original 组含已确认风险状态缺陷（sector_gate weakening != weak），仅作历史对照。'
+                    : 'Fixed 组已修复状态映射，但策略表达仍待用户审阅，不等于已接受策略。')
         };
     }
 
@@ -466,12 +503,14 @@
         const segMetrics = state.data.segment_metrics || {};
         const idx = Array.isArray(state.data.index_data) ? state.data.index_data : [];
         const benchmarkNewWindow = computeBenchmarkNewWindow(idx, segMetrics);
+        const benchmarkP22Window = computeBenchmarkP22Window(idx);
         const ctx = {
             exps: exps,
             curves: curves,
             tradesRaw: tradesRaw,
             idx: idx,
-            benchmarkNewWindow: benchmarkNewWindow
+            benchmarkNewWindow: benchmarkNewWindow,
+            benchmarkP22Window: benchmarkP22Window
         };
         const experiments = EXPERIMENT_DEFS.map(function (def) {
             return buildExperiment(def, ctx);
@@ -486,6 +525,7 @@
             formal_baseline: (state.data.manifest || {}).formal_baseline || null,
             experiment_ids: experiments.map(function (e) { return e.id; }),
             benchmark_new_window: benchmarkNewWindow,
+            benchmark_p22_window: benchmarkP22Window,
             experiments: experiments,
             by_id: byId,
             files: {
@@ -524,6 +564,18 @@
         DATA_FILES.forEach(function (file, i) {
             state.data[file.replace('.json', '')] = results[i];
         });
+        
+        // Merge P22 data into main structures
+        if (state.data.experiments_p22) {
+            Object.assign(state.data.experiments, state.data.experiments_p22);
+        }
+        if (state.data.equity_curves_p22) {
+            Object.assign(state.data.equity_curves, state.data.equity_curves_p22);
+        }
+        if (state.data.trades_p22) {
+            Object.assign(state.data.trades, state.data.trades_p22);
+        }
+        
         loadFeedback();
         const man = state.data.manifest || {};
         if (man.formal_baseline) {
@@ -660,7 +712,7 @@
         openModal(els.confirmModal);
     }
 
-    const charts = { equity: null, drawdown: null, compare: null, v2Equity: null, v2Drawdown: null, v2Timeline: null, v2Funnel: null, v2FunnelDaily: null, v2Cumulative: null, v2Contribution: null };
+    const charts = { equity: null, drawdown: null, compare: null };
 
     function destroyCharts() {
         Object.keys(charts).forEach(function (k) {
@@ -680,1062 +732,12 @@
         window.scrollTo(0, 0);
     }
 
-    /* ===================== V2 FROZEN REVIEW ===================== */
-    const V2_PERIODS = [
-        { id: 'dev', label: '开发阶段', short: '开发', start: '2024-09-02', end: '2026-07-29' },
-        { id: 'new', label: '新时间段', short: '新阶段', start: '2026-07-30', end: '2026-11-19' },
-        { id: 'full', label: '连续全窗口', short: '全窗口', start: '2024-09-02', end: '2026-11-19' }
-    ];
-    const V2_COLORS = {
-        A: '#2c7be5',
-        C: '#e64980',
-        muted: '#6c757d',
-        success: '#28a745',
-        danger: '#dc3545',
-        warning: '#d99a06',
-        info: '#17a2b8',
-        grid: 'rgba(108,117,125,0.18)'
-    };
-    const V2_EVENT_META = {
-        buy: { label: '买入', cls: 'badge-success', color: '#28a745' },
-        sell: { label: '卖出', cls: 'badge-danger', color: '#dc3545' },
-        review_exit: { label: '退出复评', cls: 'badge-warning', color: '#d99a06' },
-        recovery: { label: '恢复复评', cls: 'badge-info', color: '#17a2b8' },
-        dividend: { label: '分红', cls: 'badge-info', color: '#6f42c1' }
-    };
-    const V2_REASON_LABELS = {
-        market_cooling_not_allowed: '市场降温',
-        market_weakening_not_allowed: '市场转弱',
-        market_unknown_not_allowed: '市场状态未知',
-        sector_weakening_not_allowed: '板块转弱',
-        sector_risk_not_allowed: '板块风险',
-        sector_unknown_not_allowed: '板块状态未知',
-        price_position_broken_not_allowed: '价格位置破位',
-        price_position_extended_not_allowed: '价格位置过热',
-        price_position_unknown_not_allowed: '价格位置未知'
-    };
-
-    function v2Data() {
-        return state.data.v2_review || null;
-    }
-
-    function v2PeriodDef(id) {
-        return V2_PERIODS.filter(function (p) { return p.id === id; })[0] || V2_PERIODS[2];
-    }
-
-    function v2CurrentId() {
-        return state.v2.variant === 'C' ? 'P12-C_fixed' : 'P12-A_fixed';
-    }
-
-    function v2Exp(g) {
-        const d = v2Data();
-        return d && d.experiments ? d.experiments[g || state.v2.variant] : null;
-    }
-
-    function v2Money(v, dp, reason) {
-        if (!fmt.isNum(v)) return naInline(reason || '数据包未提供该金额');
-        return '<span class="mono">' + fmt.money(v, dp === undefined ? 2 : dp) + '</span>';
-    }
-
-    function v2Pct(v, dp, reason) {
-        if (!fmt.isNum(v)) return naInline(reason || '数据包未提供该百分比');
-        const cls = v > 0 ? 'positive' : (v < 0 ? 'negative' : '');
-        return '<span class="mono ' + cls + '">' + fmt.pct(v, dp === undefined ? 2 : dp) + '</span>';
-    }
-
-    function v2SignedMoney(v, dp) {
-        if (!fmt.isNum(v)) return naInline('数据包未提供该金额');
-        const cls = v > 0 ? 'positive' : (v < 0 ? 'negative' : '');
-        return '<span class="mono ' + cls + '">' + (v > 0 ? '+' : '') + fmt.money(v, dp === undefined ? 2 : dp) + '</span>';
-    }
-
-    function v2Rows(g, period) {
-        const d = v2Data();
-        if (!d || !d.timelines) return [];
-        const def = v2PeriodDef(period);
-        return (d.timelines[g] || []).filter(function (r) {
-            return r.date >= def.start && r.date <= def.end;
-        });
-    }
-
-    function v2Notes() {
-        return state.data.v2_trade_notes || null;
-    }
-
-    function v2SignedPct(v, dp, reason) {
-        if (!fmt.isNum(v)) return naInline(reason || '数据包未提供该百分比');
-        const cls = v > 0 ? 'positive' : (v < 0 ? 'negative' : 'neutral');
-        const sign = v > 0 ? '+' : '';
-        return '<span class="mono ' + cls + '">' + sign + fmt.pct(v, dp === undefined ? 2 : dp) + '</span>';
-    }
-
-    // Derive open positions at the period end from the daily timeline events.
-    // Only buy/sell fills count; signals, orders and cancellations never do.
-    function v2PeriodEndHoldings(g, period) {
-        const d = v2Data();
-        if (!d || !d.timelines) return [];
-        const def = v2PeriodDef(period);
-        const pos = {};
-        const lastBuy = {};
-        (d.timelines[g] || []).forEach(function (r) {
-            if (r.date < def.start || r.date > def.end) return;
-            (r.events || []).forEach(function (e) {
-                if (e.type === 'buy') {
-                    pos[e.symbol] = (pos[e.symbol] || 0) + e.quantity;
-                    lastBuy[e.symbol] = r.date;
-                } else if (e.type === 'sell') {
-                    pos[e.symbol] = (pos[e.symbol] || 0) - e.quantity;
-                }
-            });
-        });
-        const out = [];
-        Object.keys(pos).forEach(function (sym) {
-            if (pos[sym] > 0) {
-                out.push({ symbol: sym, quantity: pos[sym], last_buy_date: lastBuy[sym] || null });
-            }
-        });
-        out.sort(function (a, b) { return a.symbol < b.symbol ? -1 : 1; });
-        return out;
-    }
-
-    function v2TradeStats(g, period) {
-        const exp = v2Exp(g);
-        const st = (exp && exp.periods) ? exp.periods[period] : null;
-        const def = v2PeriodDef(period);
-        const buy = st ? st.buy_orders : null;
-        const sell = st ? st.sell_orders : null;
-        const holdings = v2PeriodEndHoldings(g, period);
-        return {
-            buy: buy,
-            sell: sell,
-            total: (fmt.isNum(buy) && fmt.isNum(sell)) ? buy + sell : null,
-            end_date: def.end,
-            end_holdings: holdings,
-            end_holdings_count: holdings.length,
-            held_days: st ? st.held_days : null,
-            trading_days: st ? st.trading_days : null
-        };
-    }
-
-    // Holding cycles relevant to the current period: closed sells whose fill
-    // date falls inside the period, plus positions still open at the period end.
-    function v2HoldingCycles(g, period) {
-        const d = v2Data();
-        const def = v2PeriodDef(period);
-        const cycles = [];
-        const t = d && d.trades ? d.trades[g] : null;
-        if (t && t.sells) {
-            t.sells.forEach(function (s) {
-                if (s.fill_date >= def.start && s.fill_date <= def.end) {
-                    cycles.push({
-                        symbol: s.symbol,
-                        status: 'closed',
-                        buy_date: s.entry_date,
-                        sell_date: s.fill_date,
-                        signal_date: s.signal_date,
-                        holding_days: s.holding_trading_days,
-                        quantity: s.quantity,
-                        net_pnl: s.net_pnl,
-                        net_return: s.net_return,
-                        reason: s.reason,
-                        cycle_id: s.cycle_id,
-                        order_id: s.order_id
-                    });
-                }
-            });
-        }
-        v2PeriodEndHoldings(g, period).forEach(function (h) {
-            cycles.push({
-                symbol: h.symbol,
-                status: 'open',
-                buy_date: h.last_buy_date,
-                sell_date: null,
-                signal_date: null,
-                holding_days: null,
-                quantity: h.quantity,
-                net_pnl: null,
-                net_return: null,
-                reason: null,
-                cycle_id: null,
-                order_id: null
-            });
-        });
-        cycles.sort(function (a, b) {
-            const da = a.sell_date || a.buy_date || '';
-            const db = b.sell_date || b.buy_date || '';
-            return da < db ? 1 : (da > db ? -1 : 0);
-        });
-        return cycles;
-    }
-
-    function v2StatsBlock(g, period) {
-        const s = v2TradeStats(g, period);
-        const num = function (v) { return fmt.isNum(v) ? fmt.money(v, 0) : naInline('数据包未提供'); };
-        const holdingsRows = s.end_holdings.map(function (h) {
-            return '<tr><td class="mono">' + esc(h.symbol) + '</td><td class="mono">' +
-                fmt.money(h.quantity, 0) + ' 股</td><td class="mono">' +
-                esc(h.last_buy_date || '—') + '</td><td class="sub">区间结束日快照；未平仓</td></tr>';
-        }).join('') || '<tr><td colspan="4">' + naCell('区间结束日无持仓（0 只）') + '</td></tr>';
-        return '<div class="v2-kpi-grid">' +
-            v2Kpi('买入成交笔数', num(s.buy), '按实际成交记录，不含信号/挂单/取消') +
-            v2Kpi('卖出成交笔数', num(s.sell), '按实际成交记录') +
-            v2Kpi('成交总笔数', num(s.total), '买入 + 卖出') +
-            v2Kpi('区间结束日期', '<span class="mono">' + esc(s.end_date) + '</span>', '期末状态取该日快照') +
-            v2Kpi('期末持仓股票数', num(s.end_holdings_count) + ' 只', '区间结束日仍持有的股票数') +
-            v2Kpi('持仓周期数（当前区间）', num(v2HoldingCycles(g, period).length), '闭合周期 + 期末未平仓；与成交笔数不同口径') +
-            '</div>' +
-            '<div class="card" style="margin-top:16px;"><div class="card-header"><span class="card-title">期末持仓明细</span>' +
-            '<span class="card-sub">区间 ' + esc(v2PeriodDef(period).label) + ' 结束日 ' + esc(s.end_date) + ' 快照</span></div><div class="card-body">' +
-            '<details class="v2-details"><summary>展开期末持仓明细（' + s.end_holdings_count + ' 只）</summary>' +
-            '<div class="table-container"><table class="matrix-table"><thead><tr><th>股票代码</th><th>持仓数量</th><th>最近买入成交日</th><th>说明</th></tr></thead><tbody>' +
-            holdingsRows + '</tbody></table></div>' +
-            '<div class="v2-note">期末状态来自区间结束日快照，不把上一阶段的持仓沿用到本阶段；平均持仓数、期间持有过的股票数、期末持仓数分列。</div></details></div></div>';
-    }
-
-    function v2ScoringAuditCard() {
-        const n = v2Notes();
-        const a = n && n.scoring_audit;
-        if (!a) {
-            return '<div class="card"><div class="card-header"><span class="card-title">评分方向审计</span></div><div class="card-body">' +
-                naCell('缺少 data/v2_trade_notes.json，无法展示评分方向审计') + '</div></div>';
-        }
-        const caseRows = (a.cases || []).map(function (c) {
-            return '<tr><td class="mono">' + esc(c.symbol) + '</td><td class="mono">' + esc(c.date) + '</td><td>' +
-                esc(c.remaining_dimension) + '</td><td class="mono">' + esc(String(c.remaining_score)) +
-                '</td><td class="mono">' + esc(String(c.threshold)) + '</td><td class="text-wrap sub">' + esc(c.derivation) + '</td></tr>';
-        }).join('');
-        const cls = a.classification || {};
-        const li = function (arr) {
-            return (arr || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('');
-        };
-        const aff = a.affected || {};
-        return '<div class="card"><div class="card-header"><span class="card-title">评分方向专项审计（只读，未改策略）</span>' +
-            '<span class="card-sub">区分确定性实现问题与策略定义问题</span></div><div class="card-body">' +
-            '<div class="v2-callout warning"><strong>真实含义：</strong>' + esc(a.score_meaning) + '</div>' +
-            '<div class="v2-callout danger"><strong>方向冲突：</strong>' + esc(a.direction_conflict) + '</div>' +
-            '<div class="v2-note">公式：<span class="mono">' + esc(a.formula) + '</span>；退出规则：' + esc(a.exit_rule) + '</div>' +
-            '<div class="table-container" style="margin-top:12px;"><table class="matrix-table"><thead><tr><th>股票</th><th>复核日</th><th>剩余维度</th><th>剩余分</th><th>阈值</th><th>来源推导</th></tr></thead><tbody>' +
-            caseRows + '</tbody></table></div>' +
-            '<div class="v2-grid-2" style="margin-top:12px;">' +
-            '<div><strong>确定性实现问题</strong><ul class="v2-limits">' + li(cls.deterministic_implementation_issue) + '</ul></div>' +
-            '<div><strong>策略定义问题</strong><ul class="v2-limits">' + li(cls.strategy_definition_issue) + '</ul></div>' +
-            '</div>' +
-            '<div class="v2-note"><strong>影响：</strong>冻结版本 ' + esc((aff.frozen_versions || []).join('、')) +
-            '；受影响交易：' + esc((aff.trades || []).join('；')) + '。' + esc(aff.note || '') + '</div>' +
-            '<div class="v2-callout info"><strong>修复建议（留待下一任务）：</strong>' + esc(a.recommendation) + '</div>' +
-            '<div class="v2-note">本页只展示评分真实含义与已发现疑点，不冒称风险分；本轮未翻转正负号、未改评分、未改阈值、未重跑收益。</div>' +
-            '</div></div>';
-    }
-
-    function v2HoldingCyclesTable(g, period) {
-        const cycles = v2HoldingCycles(g, period);
-        const rows = cycles.map(function (c) {
-            const open = c.status === 'open';
-            const statusBadge = open
-                ? '<span class="badge badge-warning">未平仓</span>'
-                : '<span class="badge badge-neutral">已平仓</span>';
-            const sellDate = open ? '<span class="na">尚未卖出</span>' : '<span class="mono">' + esc(c.sell_date) + '</span>';
-            const pnl = open ? '<span class="na">未平仓</span>' : v2SignedMoney(c.net_pnl, 2);
-            const ret = open ? '<span class="na">—</span>' : v2SignedPct(c.net_return, 4, '分母缺失或为0');
-            const sig = open ? '<span class="muted">—</span>' : '<span class="mono">' + esc(c.signal_date || '—') + '</span>';
-            const hd = fmt.isNum(c.holding_days) ? c.holding_days : '<span class="na">缺日历</span>';
-            return '<tr><td><strong class="mono">' + esc(c.symbol) + '</strong></td><td>' + statusBadge + '</td>' +
-                '<td class="mono">' + esc(c.buy_date || '—') + '</td>' +
-                '<td>' + sellDate + '</td>' +
-                '<td class="mono">' + hd + '</td>' +
-                '<td class="mono">' + pnl + '</td>' +
-                '<td class="mono">' + ret + '</td>' +
-                '<td class="mono">' + sig + '</td>' +
-                '<td class="sub text-wrap">' + (open ? '买入后尚未卖出；卖出日与盈亏为未平仓，不取期末日期冒充卖出日' : esc(c.reason || '') + '<div class="sub">cycle ' + esc(c.cycle_id === null || c.cycle_id === undefined ? '—' : c.cycle_id) + ' · 订单 ' + esc(c.order_id || '—') + '</div>') + '</td></tr>';
-        }).join('') || '<tr><td colspan="8">' + naCell('该区间无持仓周期') + '</td></tr>';
-        return '<div class="card"><div class="card-header"><span class="card-title">成交与持仓周期</span>' +
-            '<span class="card-sub">买入成交日 / 卖出成交日分列；信号日单独列；未平仓标注“尚未卖出”</span></div><div class="card-body">' +
-            '<div class="table-container"><table class="matrix-table"><thead><tr><th>股票</th><th>操作</th><th>买入成交日</th><th>卖出成交日</th><th>持有交易日</th><th>净盈亏</th><th>净收益率</th><th>卖出信号日</th><th>原因 / 周期</th></tr></thead><tbody>' +
-            rows + '</tbody></table></div>' +
-            '<div class="v2-note">本数据集每笔卖出对应单一买入批次（matched_lots 均为 1 条），按实际匹配记录展示；无多批次买入或部分卖出。买入行关联的后来卖出日属于事后展示，不进入策略输入。日期筛选按“卖出成交日（fill_date）”进行，不按信号日或期末日。</div></div></div>';
-    }
-
-    function v2TradeNotesCards() {
-        const n = v2Notes();
-        if (!n || !n.new_stage_explanations) {
-            return '<div class="card"><div class="card-header"><span class="card-title">新阶段三笔成交解释</span></div><div class="card-body">' +
-                naCell('缺少 data/v2_trade_notes.json，无法展示三笔成交解释') + '</div></div>';
-        }
-        const cards = n.new_stage_explanations.map(function (e) {
-            const isBuy = e.side === 'buy';
-            const badge = isBuy ? '<span class="badge badge-success">买入</span>' : '<span class="badge badge-danger">卖出</span>';
-            const price = e.price || {};
-            const cond = e.conditions || {};
-            const trig = e.sell_trigger || {};
-            const lots = (e.matched_lots || []).map(function (l) {
-                return esc(l.buy_date) + ' × ' + fmt.money(l.quantity, 0) + ' 股 @ ' + fmt.money(l.fill_price, 4);
-            }).join('<br>') || '—';
-            const priceRows = '<tr><th>真实未复权开盘价</th><td class="mono">' + fmt.money(price.raw_open, 4) + '</td></tr>' +
-                '<tr><th>成交价（含滑点）</th><td class="mono">' + fmt.money(price.fill_price, 4) + ' <span class="sub">' + esc(price.price_channel || '') + '</span></td></tr>' +
-                '<tr><th>数量 / 金额</th><td class="mono">' + fmt.money(e.quantity, 0) + ' 股 / ' + fmt.money(price.notional, 2) + ' 元</td></tr>' +
-                '<tr><th>费用（佣金/过户/印花）</th><td class="mono">' + fmt.money(price.commission, 2) + ' / ' + fmt.money(price.transfer_fee, 2) + ' / ' + fmt.money(price.stamp_tax, 2) + '，合计 ' + fmt.money(price.total_fees, 2) + '</td></tr>' +
-                (isBuy ? '<tr><th>总成本</th><td class="mono">' + fmt.money(price.total_cost, 2) + ' 元</td></tr>' : '<tr><th>卖出净回款 / 净盈亏</th><td class="mono">' + fmt.money(price.net_proceeds, 2) + ' / ' + v2SignedMoney(price.net_pnl, 2) + '</td></tr>');
-            const condRows = '<tr><th>市场</th><td>' + esc(cond.market || '—') + '</td><th>板块</th><td>' + esc(cond.sector || '—') + '</td></tr>' +
-                '<tr><th>价格位置</th><td>' + esc(cond.price_position || '—') + '</td><th>财务门禁</th><td>' + esc(cond.financial_state || '—') + '</td></tr>' +
-                '<tr><th>财务说明</th><td colspan="3" class="text-wrap">' + esc(cond.financial_detail || '—') + '</td></tr>';
-            const trigRows = trig.remaining_dimension ?
-                '<tr><th>卖出触发维度</th><td>' + esc((trig.triggers || []).join('、')) + '</td><th>组合</th><td>' + esc(trig.combination || '—') + '</td></tr>' +
-                '<tr><th>剩余维度</th><td>' + esc(trig.remaining_dimension) + '</td><th>剩余分 / 阈值</th><td class="mono">' + esc(String(trig.remaining_score)) + ' / ' + esc(String(trig.threshold)) + '</td></tr>' +
-                '<tr><th>三项分数</th><td colspan="3" class="mono">market ' + esc(String((trig.scores || {}).market)) + ' · sector ' + esc(String((trig.scores || {}).sector)) + ' · stock ' + esc(String((trig.scores || {}).stock)) + '</td></tr>' +
-                '<tr><th>公式</th><td colspan="3" class="text-wrap">' + esc(trig.formula || '') + '</td></tr>' : '';
-            return '<details class="v2-details v2-trade-note"><summary>' + badge + ' <strong class="mono">' + esc(e.symbol) + '</strong> ' + esc(e.name || '') +
-                ' · 信号 ' + esc(e.signal_date) + ' → 成交 ' + esc(e.fill_date) + ' · ' + fmt.money(e.quantity, 0) + ' 股</summary>' +
-                '<div class="v2-trade-note-body">' +
-                '<div class="v2-grid-2"><div><strong>价格与费用</strong><div class="table-container"><table class="matrix-table">' + priceRows + '</table></div></div>' +
-                '<div><strong>买卖条件</strong><div class="table-container"><table class="matrix-table">' + condRows + '</table></div>' +
-                (isBuy && e.budget ? '<div class="v2-note"><strong>预算依据：</strong>' + esc(e.budget.basis || '') + (fmt.isNum(e.budget.reserved_budget) ? '（reserved_budget ' + fmt.money(e.budget.reserved_budget, 2) + '）' : '') + '</div>' : '') +
-                '</div></div>' +
-                (!isBuy && trig.remaining_dimension ? '<div style="margin-top:12px;"><strong>卖出评分与触发</strong><div class="table-container"><table class="matrix-table">' + trigRows + '</table></div>' +
-                    '<div class="v2-note">匹配买入批次：' + lots + '</div></div>' : '') +
-                '<div class="v2-grid-2" style="margin-top:12px;">' +
-                '<div class="v2-mini-stat"><div class="v2-kpi-label">财务报告期 / 门禁值</div><div class="v2-kpi-value na">无法重建</div><div class="v2-kpi-sub">' + esc((e.financial_report || {}).note || '') + '</div></div>' +
-                '<div class="v2-mini-stat"><div class="v2-kpi-label">观察资格 / 观察记录</div><div class="v2-kpi-value">' + (e.observation && e.observation.eligible ? '具备资格' : '—') + '</div><div class="v2-kpi-sub">' + esc((e.observation || {}).note || '') + '</div></div>' +
-                '</div>' +
-                '<ul class="v2-limits">' + (e.notes || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' +
-                '</div></details>';
-        }).join('');
-        return '<div class="card"><div class="card-header"><span class="card-title">新阶段三笔成交解释</span>' +
-            '<span class="card-sub">信号日 vs 成交日；数量与预算；真实开盘价、滑点、费用；买卖条件与评分</span></div><div class="card-body">' +
-            '<div class="v2-callout info">' + esc(n.simulation_timing || '') + '</div>' +
-            '<div class="v2-callout warning">' + esc(n.disclaimer || '') + '</div>' +
-            cards + '</div></div>';
-    }
-
-    function v2EventBadge(type) {
-        const m = V2_EVENT_META[type] || { label: type, cls: 'badge-neutral' };
-        return '<span class="badge ' + m.cls + '">' + esc(m.label) + '</span>';
-    }
-
-    function v2EventText(e) {
-        if (e.type === 'buy') {
-            return '买入 ' + esc(e.symbol) + ' ' + fmt.money(e.quantity, 0) + ' 股 @ ' + fmt.money(e.price, 4) +
-                '，金额 ' + fmt.money(e.amount, 2) + '（' + esc(e.order_id || '') + '）';
-        }
-        if (e.type === 'sell') {
-            return '卖出 ' + esc(e.symbol) + ' ' + fmt.money(e.quantity, 0) + ' 股 @ ' + fmt.money(e.price, 4) +
-                '，回款 ' + fmt.money(e.amount, 2) + '，净盈亏 ' + fmt.money(e.net_pnl, 2) + '（' + esc(e.order_id || '') + '）';
-        }
-        if (e.type === 'review_exit') {
-            return '退出复评：' + esc(e.symbol) + '；剩余维度分数 ' +
-                (fmt.isNum(e.remaining_score) ? fmt.money(e.remaining_score, 6) : '暂无数据') +
-                ' / 阈值 ' + (fmt.isNum(e.threshold) ? fmt.money(e.threshold, 2) : '暂无数据') +
-                '；订单 ' + esc(e.order_id || '');
-        }
-        if (e.type === 'recovery') {
-            return esc(e.detail || '首次恢复正常复评') + '：' + esc(e.symbol || '');
-        }
-        if (e.type === 'dividend') {
-            return '现金分红 ' + esc(e.symbol) + ' ' + fmt.money(e.amount, 2) + ' 元（税前）';
-        }
-        return esc(e.type);
-    }
-
-    function v2Controls() {
-        const variant = state.v2.variant;
-        const period = state.v2.period;
-        return '<div class="v2-control-bar">' +
-            '<div class="v2-control-group"><span class="v2-control-label">方案</span><div class="v2-seg">' +
-            ['A', 'C'].map(function (g) {
-                return '<button type="button" class="v2-seg-btn' + (variant === g ? ' active' : '') +
-                    '" data-v2-variant="' + g + '">' + (g === 'A' ? 'P12-A_fixed · 主方案' : 'P12-C_fixed · 对照') + '</button>';
-            }).join('') + '</div></div>' +
-            '<div class="v2-control-group"><span class="v2-control-label">区间</span><div class="v2-seg">' +
-            V2_PERIODS.map(function (p) {
-                return '<button type="button" class="v2-seg-btn' + (period === p.id ? ' active' : '') +
-                    '" data-v2-period="' + p.id + '">' + esc(p.label) + '</button>';
-            }).join('') + '</div></div>' +
-            '<button type="button" class="btn btn-secondary btn-sm" data-v2-feedback>记录意见</button>' +
-            '</div>';
-    }
-
-    function v2PageHeader(title, subtitle, opts) {
-        const d = v2Data();
-        if (!d) {
-            return sectionHeader(title, 'V2 数据包未加载') +
-                '<div class="alert alert-warning">暂无数据：data/v2_review.json 未成功加载，V1 页面不受影响。</div>';
-        }
-        const def = v2PeriodDef(state.v2.period);
-        return sectionHeader(title, subtitle) +
-            '<div class="v2-banner">' +
-            '<div class="v2-banner-line"><span class="badge badge-warning">V2 独立入口</span>' +
-            '<strong>' + esc(v2CurrentId()) + '</strong>' +
-            '<span class="badge ' + (state.v2.variant === 'A' ? 'badge-info' : 'badge-neutral') + '">' +
-            (state.v2.variant === 'A' ? '主方案' : '对照') + '</span>' +
-            '<span class="v2-muted">V1 四组 Original/Fixed × C/R 结果保留在旧页面；本入口不回写 V1。</span></div>' +
-            '<div class="v2-banner-meta">当前区间：' + esc(def.label) + ' ' + esc(def.start) + ' ~ ' + esc(def.end) +
-            ' · 数据截止 ' + esc(d.periods.full.end) + ' · 意见存储键 <span class="mono">goldone_feedback</span></div>' +
-            '</div>' + v2Controls();
-    }
-
-    function bindV2(container) {
-        container.querySelectorAll('[data-v2-variant]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                state.v2.variant = btn.getAttribute('data-v2-variant');
-                state.v2.timelinePage = 1;
-                state.v2.tradePage = 1;
-                state.v2.whyPage = 1;
-                try { localStorage.setItem('goldone_v2_variant', state.v2.variant); } catch (e) { /* noop */ }
-                renderPage(state.currentPage);
-            });
-        });
-        container.querySelectorAll('[data-v2-period]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                state.v2.period = btn.getAttribute('data-v2-period');
-                state.v2.timelinePage = 1;
-                state.v2.tradePage = 1;
-                state.v2.whyPage = 1;
-                try { localStorage.setItem('goldone_v2_period', state.v2.period); } catch (e) { /* noop */ }
-                renderPage(state.currentPage);
-            });
-        });
-        const fb = container.querySelector('[data-v2-feedback]');
-        if (fb) {
-            fb.addEventListener('click', function () {
-                openFeedbackModal({ version: v2CurrentId(), experiment: v2CurrentId(), page: state.currentPage });
-            });
-        }
-        container.querySelectorAll('[data-v2-timeline-page]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                state.v2.timelinePage = parseInt(btn.getAttribute('data-v2-timeline-page'), 10) || 1;
-                renderPage(state.currentPage);
-            });
-        });
-        container.querySelectorAll('[data-v2-why-page]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                state.v2.whyPage = parseInt(btn.getAttribute('data-v2-why-page'), 10) || 1;
-                renderPage(state.currentPage);
-            });
-        });
-        container.querySelectorAll('[data-v2-trade-page]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                state.v2.tradePage = parseInt(btn.getAttribute('data-v2-trade-page'), 10) || 1;
-                renderPage(state.currentPage);
-            });
-        });
-        container.querySelectorAll('[data-v2-sort]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                const col = btn.getAttribute('data-v2-sort');
-                if (state.v2.tradeSort.column === col) {
-                    state.v2.tradeSort.direction = state.v2.tradeSort.direction === 'asc' ? 'desc' : 'asc';
-                } else {
-                    state.v2.tradeSort.column = col;
-                    state.v2.tradeSort.direction = col === 'symbol' ? 'asc' : 'desc';
-                }
-                state.v2.tradePage = 1;
-                renderPage(state.currentPage);
-            });
-        });
-        const sym = container.querySelector('#v2SymbolFilter');
-        if (sym) {
-            sym.addEventListener('change', function () {
-                state.v2.tradeSymbol = sym.value;
-                state.v2.tradePage = 1;
-                renderPage(state.currentPage);
-            });
-        }
-    }
-
-    const v2EventPlugin = {
-        id: 'v2EventLines',
-        afterDatasetsDraw: function (chart, args, opts) {
-            const events = (opts && opts.events) || [];
-            if (!events.length || !chart.scales.x) return;
-            const x = chart.scales.x;
-            const area = chart.chartArea;
-            const ctx = chart.ctx;
-            ctx.save();
-            events.forEach(function (ev) {
-                const idx = chart.data.labels.indexOf(ev.date);
-                if (idx < 0) return;
-                const px = x.getPixelForValue(idx);
-                if (px < area.left || px > area.right) return;
-                ctx.strokeStyle = ev.color || V2_COLORS.muted;
-                ctx.globalAlpha = 0.18;
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(px, area.top);
-                ctx.lineTo(px, area.bottom);
-                ctx.stroke();
-            });
-            ctx.restore();
-        }
-    };
-
-    function v2SetChart(key, canvasId, config, withEvents) {
-        const ctx = chartReady(canvasId);
-        if (!ctx) return;
-        if (withEvents) config.plugins = [v2EventPlugin];
-        if (charts[key]) {
-            try { charts[key].destroy(); } catch (e) { /* noop */ }
-        }
-        charts[key] = new Chart(ctx, config);
-    }
-
-    function v2EquityChartData(g, period) {
-        const rows = v2Rows(g, period);
-        if (!rows.length) return null;
-        const base = rows[0].equity;
-        return {
-            labels: rows.map(function (r) { return r.date; }),
-            data: rows.map(function (r) { return base ? r.equity / base * 100 : null; }),
-            base_date: rows[0].date,
-            base_equity: base
-        };
-    }
-
-    function drawV2Equity(period) {
-        const a = v2EquityChartData('A', period);
-        const c = v2EquityChartData('C', period);
-        if (!a || !c) return;
-        v2SetChart('v2Equity', 'v2EquityChart', {
-            type: 'line',
-            data: {
-                labels: a.labels,
-                datasets: [
-                    { label: 'P12-A_fixed（主方案）', data: a.data, borderColor: V2_COLORS.A, backgroundColor: 'rgba(44,123,229,0.08)', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0.1, fill: false },
-                    { label: 'P12-C_fixed（对照）', data: c.data, borderColor: V2_COLORS.C, backgroundColor: 'rgba(230,73,128,0.08)', borderWidth: 1.6, pointRadius: 0, pointHoverRadius: 4, tension: 0.1, fill: false }
-                ]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: { position: 'top' },
-                    tooltip: { callbacks: { label: function (c2) { return (c2.dataset.label || '') + '：' + (fmt.isNum(c2.raw) ? c2.raw.toFixed(2) : '暂无数据') + '（起点=100）'; } } }
-                },
-                scales: {
-                    x: { ticks: { maxTicksLimit: 10, autoSkip: true, maxRotation: 0 }, title: { display: true, text: '日期' } },
-                    y: { title: { display: true, text: '归一化权益（区间起点=100）' }, ticks: { callback: function (v) { return Number(v).toFixed(0); } } }
-                }
-            }
-        });
-    }
-
-    function drawV2Drawdown(period) {
-        const labels = v2Rows('A', period).map(function (r) { return r.date; });
-        function dd(g) {
-            let peak = null;
-            return v2Rows(g, period).map(function (r) {
-                if (peak === null || r.equity > peak) peak = r.equity;
-                return peak ? (r.equity / peak - 1) * 100 : 0;
-            });
-        }
-        if (!labels.length) return;
-        v2SetChart('v2Drawdown', 'v2DrawdownChart', {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    { label: 'A 回撤', data: dd('A'), borderColor: V2_COLORS.A, backgroundColor: 'rgba(44,123,229,0.12)', borderWidth: 1.5, pointRadius: 0, fill: true, tension: 0.1 },
-                    { label: 'C 回撤', data: dd('C'), borderColor: V2_COLORS.C, backgroundColor: 'rgba(230,73,128,0.08)', borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.1 }
-                ]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: function (c2) { return (c2.dataset.label || '') + '：' + (fmt.isNum(c2.raw) ? c2.raw.toFixed(2) : '暂无数据') + '%'; } } } },
-                scales: {
-                    x: { ticks: { maxTicksLimit: 10, autoSkip: true, maxRotation: 0 } },
-                    y: { title: { display: true, text: '回撤（%）' }, ticks: { callback: function (v) { return Number(v).toFixed(0) + '%'; } } }
-                }
-            }
-        });
-    }
-
-    function drawV2Timeline(period) {
-        const g = state.v2.variant;
-        const rows = v2Rows(g, period);
-        if (!rows.length) return;
-        const events = [];
-        rows.forEach(function (r) {
-            (r.events || []).forEach(function (e) {
-                if (e.type === 'review_exit' || e.type === 'buy' || e.type === 'sell' || e.type === 'recovery') {
-                    events.push({ date: r.date, color: (V2_EVENT_META[e.type] || {}).color || V2_COLORS.muted });
-                }
-            });
-        });
-        v2SetChart('v2Timeline', 'v2TimelineChart', {
-            type: 'line',
-            data: {
-                labels: rows.map(function (r) { return r.date; }),
-                datasets: [
-                    { label: '股票市值 / 总权益', data: rows.map(function (r) { return r.exposure * 100; }), borderColor: V2_COLORS.A, backgroundColor: 'rgba(44,123,229,0.10)', borderWidth: 2, pointRadius: 0, fill: true, tension: 0.1 },
-                    { label: '现金 / 总权益', data: rows.map(function (r) { return r.cash_ratio * 100; }), borderColor: V2_COLORS.success, backgroundColor: 'rgba(40,167,69,0.05)', borderWidth: 1.5, pointRadius: 0, fill: false, tension: 0.1 }
-                ]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: { position: 'top' },
-                    tooltip: { callbacks: { label: function (c2) { return (c2.dataset.label || '') + '：' + (fmt.isNum(c2.raw) ? c2.raw.toFixed(2) : '暂无数据') + '%'; } } },
-                    v2EventLines: { events: events }
-                },
-                scales: {
-                    x: { ticks: { maxTicksLimit: 10, autoSkip: true, maxRotation: 0 }, title: { display: true, text: '日期' } },
-                    y: { min: 0, max: 100, title: { display: true, text: '占总权益（%）' }, ticks: { callback: function (v) { return Number(v).toFixed(0) + '%'; } } }
-                }
-            }
-        }, true);
-    }
-
-    function drawV2Funnel(period) {
-        const g = state.v2.variant;
-        const stats = v2Data().why_not_buy[g][period];
-        const stages = [
-            { label: '可评估符号日', value: stats.evaluable_symbol_days },
-            { label: '财务通过', value: stats.financial_passed_symbol_days },
-            { label: '权限通过', value: stats.permission_passed_symbol_days },
-            { label: '新候选', value: stats.new_candidate_instances },
-            { label: '买入意图', value: stats.buy_intents }
-        ];
-        v2SetChart('v2Funnel', 'v2FunnelChart', {
-            type: 'bar',
-            data: {
-                labels: stages.map(function (s) { return s.label; }),
-                datasets: [{ label: '符号日 / 实例', data: stages.map(function (s) { return s.value; }), backgroundColor: ['#2c7be5', '#4c8fe8', '#74a7ec', '#d99a06', '#28a745'], borderRadius: 4 }]
-            },
-            options: {
-                indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (c2) { return fmt.money(c2.raw, 0) + ' 个'; } } } },
-                scales: { x: { title: { display: true, text: '符号日 / 实例数' }, ticks: { callback: function (v) { return fmt.money(v, 0); } } }, y: { ticks: { autoSkip: false } } }
-            }
-        });
-        v2SetChart('v2FunnelDaily', 'v2FunnelDailyChart', {
-            type: 'line',
-            data: {
-                labels: stats.daily.map(function (d) { return d.date; }),
-                datasets: [
-                    { label: '财务通过', data: stats.daily.map(function (d) { return d.financial_passed; }), borderColor: V2_COLORS.A, borderWidth: 1.4, pointRadius: 0, tension: 0.1, fill: false },
-                    { label: '权限通过', data: stats.daily.map(function (d) { return d.permission_passed; }), borderColor: V2_COLORS.success, borderWidth: 1.4, pointRadius: 0, tension: 0.1, fill: false },
-                    { label: '新候选', data: stats.daily.map(function (d) { return d.new_candidates; }), borderColor: V2_COLORS.warning, borderWidth: 1.8, pointRadius: 0, tension: 0.1, fill: false }
-                ]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: function (c2) { return (c2.dataset.label || '') + '：' + fmt.money(c2.raw, 0); } } } },
-                scales: { x: { ticks: { maxTicksLimit: 10, autoSkip: true, maxRotation: 0 } }, y: { title: { display: true, text: '个数' }, ticks: { callback: function (v) { return fmt.money(v, 0); } } } }
-            }
-        });
-    }
-
-    function drawV2Contribution(g) {
-        const c = v2Data().trades[g].new_stage;
-        const labels = c.contributions.map(function (x) { return x.symbol; });
-        const vals = c.contributions.map(function (x) { return x.contribution; });
-        v2SetChart('v2Contribution', 'v2ContributionChart', {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{ label: '新阶段贡献（元）', data: vals, backgroundColor: vals.map(function (v) { return v >= 0 ? '#d9363e' : '#1a9e5f'; }), borderRadius: 4 }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (c2) { return fmt.money(c2.raw, 2) + ' 元'; } } } },
-                scales: { x: { ticks: { autoSkip: false } }, y: { title: { display: true, text: '贡献（元）' }, ticks: { callback: function (v) { return fmt.money(v, 0); } } } }
-            }
-        });
-    }
-
-    function drawV2Cumulative(period) {
-        const g = state.v2.variant;
-        const sells = v2Data().trades[g].sells.filter(function (s) {
-            const def = v2PeriodDef(period);
-            return s.fill_date >= def.start && s.fill_date <= def.end;
-        });
-        let cum = 0;
-        const labels = [];
-        const vals = [];
-        sells.forEach(function (s) {
-            cum += s.net_pnl;
-            labels.push(s.fill_date);
-            vals.push(cum);
-        });
-        v2SetChart('v2Cumulative', 'v2CumulativeChart', {
-            type: 'line',
-            data: { labels: labels, datasets: [{ label: '区间内累计已实现净盈亏（元）', data: vals, borderColor: V2_COLORS.A, backgroundColor: 'rgba(44,123,229,0.10)', borderWidth: 2, pointRadius: 3, fill: true, tension: 0.1 }] },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: function (c2) { return fmt.money(c2.raw, 2) + ' 元'; } } } },
-                scales: { x: { ticks: { maxTicksLimit: 10, autoSkip: true, maxRotation: 0 } }, y: { title: { display: true, text: '累计净盈亏（元）' }, ticks: { callback: function (v) { return fmt.money(v, 0); } } } }
-            }
-        });
-    }
-
-    function v2Kpi(label, valueHtml, sub, cls) {
-        return '<div class="v2-kpi ' + (cls || '') + '"><div class="v2-kpi-label">' + esc(label) + '</div>' +
-            '<div class="v2-kpi-value">' + valueHtml + '</div>' +
-            (sub ? '<div class="v2-kpi-sub">' + sub + '</div>' : '') + '</div>';
-    }
-
-    function v2Pager(total, page, pageSize, attr) {
-        const pages = Math.max(1, Math.ceil(total / pageSize));
-        const p = Math.min(Math.max(1, page), pages);
-        return '<div class="pagination"><div class="pagination-info">第 ' + p + ' / ' + pages + ' 页 · 共 ' + total + ' 行</div>' +
-            '<div class="pagination-controls">' +
-            '<button class="pagination-btn" ' + attr + '="' + (p - 1) + '"' + (p <= 1 ? ' disabled' : '') + '>上一页</button>' +
-            '<button class="pagination-btn" ' + attr + '="' + (p + 1) + '"' + (p >= pages ? ' disabled' : '') + '>下一页</button>' +
-            '</div></div>';
-    }
-
-    function v2SortHeader(label, col) {
-        const active = state.v2.tradeSort.column === col;
-        const arrow = active ? (state.v2.tradeSort.direction === 'asc' ? ' ▲' : ' ▼') : '';
-        return '<th><button type="button" class="v2-sort-btn' + (active ? ' active' : '') + '" data-v2-sort="' + col + '">' + esc(label) + arrow + '</button></th>';
-    }
-
-    function renderV2Overview(container) {
-        const d = v2Data();
-        const g = state.v2.variant;
-        const p = state.v2.period;
-        if (!d) {
-            container.innerHTML = v2PageHeader('V2 总览', '冻结结果审阅') + '<div class="alert alert-warning">暂无数据：data/v2_review.json 未加载。</div>';
-            return;
-        }
-        const exp = v2Exp(g);
-        const st = exp.periods[p];
-        const other = d.experiments[g === 'A' ? 'C' : 'A'];
-        const otherSt = other.periods[p];
-        const otherLabel = g === 'A' ? 'C' : 'A';
-
-        const periodRows = V2_PERIODS.map(function (def) {
-            const a = d.experiments.A.periods[def.id];
-            const c = d.experiments.C.periods[def.id];
-            return '<tr><td><strong>' + esc(def.label) + '</strong><div class="sub">' + def.start + ' ~ ' + def.end + ' · ' + a.trading_days + ' 日</div></td>' +
-                '<td>' + v2Pct(a.total_return, 4) + '<div class="sub">A</div></td>' +
-                '<td>' + v2Pct(c.total_return, 4) + '<div class="sub">C</div></td>' +
-                '<td>' + v2Pct(a.max_drawdown, 2) + '<div class="sub">A</div></td>' +
-                '<td>' + v2Pct(c.max_drawdown, 2) + '<div class="sub">C</div></td>' +
-                '<td>' + v2Pct(a.avg_exposure, 2) + '<div class="sub">A</div></td>' +
-                '<td>' + v2Pct(c.avg_exposure, 2) + '<div class="sub">C</div></td>' +
-                '<td>' + a.held_days + ' / ' + a.trading_days + '<div class="sub">A · ' + fmt.pct(a.held_day_ratio, 2) + '</div></td>' +
-                '<td>' + c.held_days + ' / ' + c.trading_days + '<div class="sub">C · ' + fmt.pct(c.held_day_ratio, 2) + '</div></td></tr>';
-        }).join('');
-
-        const benchRows = d.benchmarks.new_stage.map(function (b) {
-            return '<tr><td><strong>' + esc(b.id) + '</strong></td><td>' + esc(b.label) + '</td><td>' + v2Pct(b.return, 4) + '</td><td>' + v2Pct(b.max_drawdown, 2) + '</td><td>' + (fmt.isNum(b.boundary_value) ? fmt.money(b.boundary_value, 2) : '—') + '</td><td>' + (fmt.isNum(b.end_value) ? fmt.money(b.end_value, 2) : '—') + '</td><td class="text-wrap">' + esc(b.note) + '</td></tr>';
-        }).join('');
-        const idxRows = d.benchmarks.index_starts.map(function (x) {
-            return '<tr><td>' + esc(x.label) + '</td><td>' + v2Pct(x.return, 4) + '</td><td>' + fmt.money(x.start_close, 4) + '</td></tr>';
-        }).join('');
-
-        const gateRows = d.validation.gates.map(function (g2) {
-            return '<tr><td class="mono">' + esc(g2.id) + '</td><td>' + esc(g2.label) + '</td><td><span class="badge ' + (g2.pass ? 'badge-success' : 'badge-danger') + '">' + (g2.pass ? 'PASS' : 'FAIL') + '</span></td><td class="text-wrap">' + esc(g2.detail || '') + '</td></tr>';
-        }).join('');
-        const decisionRows = d.decisions.map(function (x) {
-            return '<tr><td class="mono">' + esc(x.id) + '</td><td>' + esc(x.label) + '</td><td><span class="badge ' + (x.adopted_as === '未采用' ? 'badge-neutral' : (x.id === 'P20E' ? 'badge-warning' : 'badge-info')) + '">' + esc(x.adopted_as) + '</span></td><td class="text-wrap">' + esc(x.decision) + '</td><td class="text-wrap sub">' + esc(x.evidence) + '</td></tr>';
-        }).join('');
-
-        container.innerHTML = v2PageHeader('V2 总览', '开发阶段、新时间段、连续全窗口分开展示；主方案 P12-A_fixed，C 仅对照') +
-            '<div class="v2-callout danger"><div class="v2-callout-title">' + esc(d.headline.conclusion) + '</div>' +
-            '<div>' + esc(d.headline.sub) + '</div><ul>' + d.headline.rules.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ul></div>' +
-            (p === 'new' ? '<div class="v2-callout warning"><strong>当前只显示新阶段。</strong> 新阶段正收益不能单独作为有效性证据；请同时看连续全窗口 −11.17% 和单票依赖。</div>' : '') +
-            '<div class="v2-kpi-grid">' +
-            v2Kpi('当前区间收益 · ' + v2PeriodDef(p).label, v2Pct(st.total_return, 4), 'A ' + fmt.money(st.start_equity, 2) + ' → ' + fmt.money(st.end_equity, 2)) +
-            v2Kpi('最大回撤', v2Pct(st.max_drawdown, 2), '谷值 ' + esc(st.max_drawdown_trough_date || '—')) +
-            v2Kpi('平均资金暴露', v2Pct(st.avg_exposure, 2), '每日 stock MV / equity 的算术平均') +
-            v2Kpi('有持仓天数', st.held_days + ' / ' + st.trading_days, fmt.pct(st.held_day_ratio, 2) + '（不是资金暴露）') +
-            v2Kpi('买入 / 卖出 / 合计', st.buy_orders + ' / ' + st.sell_orders + ' / ' + (st.buy_orders + st.sell_orders), otherLabel + '：' + otherSt.buy_orders + ' / ' + otherSt.sell_orders + ' / ' + (otherSt.buy_orders + otherSt.sell_orders) + '（对照）') +
-            v2Kpi('基准（CSI300 价格）', v2Pct(st.benchmark_return, 4), '不含指数分红；策略为税前总收益') +
-            v2Kpi('新阶段单票贡献占净 PnL', v2Pct(d.trades[g].new_stage.top_contribution_share, 2), esc(d.trades[g].new_stage.top_contributor) + '；分母是净 PnL，不是权重；剔除后 ' + fmt.pct(d.trades[g].new_stage.return_excluding_top, 4)) +
-            v2Kpi('明确结论', '<span class="v2-kpi-text">数据齐备，交易样本少</span>', 'P20E：' + esc(d.validation.label), 'v2-kpi-wide') +
-            '</div>' +
-            v2StatsBlock(g, p) +
-            '<div class="card"><div class="card-header"><span class="card-title">三个阶段分开看（A 主方案 / C 对照）</span><span class="card-sub">新阶段收益不得覆盖全窗口结论</span></div><div class="card-body">' +
-            '<div class="table-container"><table class="matrix-table"><thead><tr><th>区间</th><th>A 收益</th><th>C 收益</th><th>A 最大回撤</th><th>C 最大回撤</th><th>A 平均暴露</th><th>C 平均暴露</th><th>A 有持仓天数</th><th>C 有持仓天数</th></tr></thead><tbody>' + periodRows + '</tbody></table></div>' +
-            '<div class="v2-note">开发阶段 2024-09-02~2026-07-29（460 日）；新时间段 2026-07-30~2026-11-19（75 日）；连续全窗口 2024-09-02~2026-11-19（535 日）。全窗口起点 1,000,000，阶段收益不是把全窗口收益重新起算。</div></div></div>' +
-            '<div class="v2-grid-2">' +
-            '<div class="card"><div class="card-header"><span class="card-title">归一化权益（区间起点=100）</span></div><div class="card-body"><div class="chart-container" style="height:340px;"><canvas id="v2EquityChart"></canvas></div></div></div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">回撤（%）</span></div><div class="card-body"><div class="chart-container" style="height:340px;"><canvas id="v2DrawdownChart"></canvas></div></div></div>' +
-            '</div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">新时间段基准（B0–B3）</span><span class="card-sub">策略为税前总收益；B1 为价格收益</span></div><div class="card-body">' +
-            '<div class="table-container"><table class="matrix-table"><thead><tr><th>ID</th><th>基准</th><th>新阶段收益</th><th>最大回撤</th><th>边界值/点位</th><th>期末值/点位</th><th>说明</th></tr></thead><tbody>' + benchRows + '</tbody></table></div>' +
-            '<div class="v2-note">' + esc(d.benchmarks.note) + '</div>' +
-            '<div class="table-container" style="margin-top:12px;"><table><thead><tr><th>指数起点</th><th>到 ' + esc(d.periods.full.end) + ' 的价格收益</th><th>起点收盘</th></tr></thead><tbody>' + idxRows + '</tbody></table></div></div></div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">验证结论与预注册门槛</span><span class="card-sub">' + esc(d.validation.classification) + '</span></div><div class="card-body">' +
-            '<div class="v2-callout warning"><strong>' + esc(d.validation.label) + '</strong>：A 新关闭 episode 1 个，A+C 2 个；低于 A≥2 且 A+C≥5。' + esc(d.validation.gate_note || '') + '</div>' +
-            '<div class="table-container"><table class="matrix-table"><thead><tr><th>门禁</th><th>说明</th><th>结果</th><th>证据</th></tr></thead><tbody>' + gateRows + '</tbody></table></div>' +
-            '<div class="v2-note">P12 行为测试 11/11 PASS；mutation 3/3 killed；460 日会计恒等式全部成立。前缀：A strict 不一致（1 个日历投影字段），C strict 一致；经济字段一致，但不宣称严格逐字段一致。</div></div></div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">版本与采纳状态</span><span class="card-sub">P13 两日确认、P18 估值禁买均未采用</span></div><div class="card-body">' +
-            '<div class="table-container"><table class="matrix-table"><thead><tr><th>版本</th><th>内容</th><th>状态</th><th>Decision</th><th>依据</th></tr></thead><tbody>' + decisionRows + '</tbody></table></div>' +
-            '<div class="v2-note"><strong>增长原因：</strong>' + esc(d.growth_reason.label) + '；' + esc(d.growth_reason.status) + '。' + esc(d.growth_reason.reason) + '</div></div></div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">数据核对与静态边界</span><span class="card-sub">源账本一致性 · 无外部模型</span></div><div class="card-body">' +
-            '<div class="v2-kpi-grid">' +
-            v2Kpi('核对状态', '<span class="badge ' + (d.reconciliation.status === 'PASS' ? 'badge-success' : 'badge-danger') + '">' + esc(d.reconciliation.status) + '</span>', esc(String(d.reconciliation.passed)) + ' / ' + esc(String(d.reconciliation.check_count)) + ' 项通过') +
-            v2Kpi('源文件哈希', fmt.money(d.reconciliation.source_file_count, 0), '冻结产物 SHA-256 记录在 verification/source_hashes.json') +
-            v2Kpi('数据截止', esc(d.periods.full.end), '生成 ' + esc(d.generated_at.slice(0, 10))) +
-            v2Kpi('页面边界', '<span class="v2-kpi-text">只读本地静态数据</span>', '不加载外部模型 / 自动 AI 服务') +
-            '</div><ul class="v2-limits">' + d.reconciliation.key_checks.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' +
-            '<div class="v2-note">' + esc(d.reconciliation.note) + '</div></div></div>' +
-            v2ScoringAuditCard() +
-            '<div class="card"><div class="card-header"><span class="card-title">口径与限制（必须与数字一起读）</span></div><div class="card-body"><ol class="v2-limits">' +
-            d.limitations.map(function (l) { return '<li><strong>' + esc(l.title) + '：</strong>' + esc(l.text) + '</li>'; }).join('') +
-            '</ol></div></div>';
-
-        bindV2(container);
-        drawV2Equity(p);
-        drawV2Drawdown(p);
-    }
-
-    function renderV2Timeline(container) {
-        const d = v2Data();
-        const g = state.v2.variant;
-        const p = state.v2.period;
-        if (!d) {
-            container.innerHTML = v2PageHeader('V2 持仓与现金时间线', '逐日持仓、现金与资金暴露') + '<div class="alert alert-warning">暂无数据。</div>';
-            return;
-        }
-        const st = v2Exp(g).periods[p];
-        const rows = v2Rows(g, p);
-        const devRatio = v2Exp(g).periods.dev.exposure_ratio_of_averages;
-        const events = [];
-        rows.forEach(function (r) {
-            (r.events || []).forEach(function (e) { events.push(Object.assign({ date: r.date }, e)); });
-        });
-        const pageSize = 25;
-        const pages = Math.max(1, Math.ceil(rows.length / pageSize));
-        const page = Math.min(Math.max(1, state.v2.timelinePage), pages);
-        const pageRows = rows.slice().reverse().slice((page - 1) * pageSize, page * pageSize);
-
-        const eventRows = events.slice().sort(function (a, b) {
-            return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0);
-        }).slice(0, 40).map(function (e) {
-            return '<div class="v2-event"><span class="v2-event-date mono">' + esc(e.date) + '</span>' +
-                v2EventBadge(e.type) + '<span class="v2-event-text">' + v2EventText(e) + '</span></div>';
-        }).join('') || '<div class="loading">当前区间无已记录事件</div>';
-
-        const tableRows = pageRows.map(function (r) {
-            const ev = (r.events || []).length ? (r.events || []).map(function (e) {
-                return v2EventBadge(e.type) + '<span class="sub">' + esc(e.symbol || '') + '</span>';
-            }).join(' ') : '<span class="muted">—</span>';
-            return '<tr' + ((r.events || []).length ? ' class="v2-event-row"' : '') + '>' +
-                '<td class="mono">' + esc(r.date) + '</td>' +
-                '<td class="mono">' + fmt.money(r.equity, 2) + '</td>' +
-                '<td class="mono">' + fmt.money(r.cash, 2) + '</td>' +
-                '<td class="mono">' + fmt.pct(r.cash_ratio, 2) + '</td>' +
-                '<td class="mono">' + fmt.money(r.market_value, 2) + '</td>' +
-                '<td class="mono">' + fmt.pct(r.exposure, 2) + '</td>' +
-                '<td class="mono">' + r.position_count + '</td>' +
-                '<td class="mono">' + v2Pct(r.daily_return, 4) + '</td>' +
-                '<td class="mono">' + v2Pct(r.cumulative_return, 2) + '</td>' +
-                '<td>' + ev + '</td></tr>';
-        }).join('');
-
-        container.innerHTML = v2PageHeader('V2 持仓与现金时间线', '每天展示持仓数量、股票市值占总权益、现金占比；买卖与重要复评单独标记') +
-            '<div class="v2-kpi-grid">' +
-            v2Kpi('有持仓天数', st.held_days + ' / ' + st.trading_days, fmt.pct(st.held_day_ratio, 2), '') +
-            v2Kpi('平均资金暴露', v2Pct(st.avg_exposure, 2), '每日股票市值 / 总权益的算术平均') +
-            v2Kpi('平均现金占比', v2Pct(st.avg_cash_ratio, 2), '每日现金 / 总权益') +
-            v2Kpi('期末现金占比', rows.length ? fmt.pct(rows[rows.length - 1].cash_ratio, 2) : '暂无数据', rows.length ? '期末现金 ' + fmt.money(rows[rows.length - 1].cash, 2) : '') +
-            v2Kpi('有持仓天数 ≠ 资金暴露', '<span class="v2-kpi-text">两个口径分开</span>', '持仓天数是有无持仓；暴露是每天仓位/权益') +
-            '</div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">股票暴露与现金占比</span><span class="card-sub">细线：买入/卖出/退出复评事件</span></div><div class="card-body"><div class="chart-container" style="height:360px;"><canvas id="v2TimelineChart"></canvas></div></div></div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">重要事件（最近 40 条）</span><span class="card-sub">买入、卖出、退出复评、恢复复评</span></div><div class="card-body"><div class="v2-event-list">' + eventRows + '</div></div></div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">逐日明细</span><span class="card-sub">金额为元；单日收益与累计收益分列</span></div><div class="card-body">' +
-            '<div class="table-container"><table class="matrix-table"><thead><tr><th>日期</th><th>总权益</th><th>现金</th><th>现金/权益</th><th>股票市值</th><th>股票/权益</th><th>持仓数</th><th>单日收益</th><th>累计收益</th><th>事件</th></tr></thead><tbody>' + tableRows + '</tbody></table></div>' +
-            v2Pager(rows.length, page, pageSize, 'data-v2-timeline-page') +
-            '<div class="v2-note">口径补充：开发阶段 P12 报告中的平均资金暴露 ' + fmt.pct(devRatio, 2) + ' 是“平均股票市值 / 平均权益”（ratio of averages）；本页平均资金暴露 ' + fmt.pct(v2Exp(g).periods.dev.avg_exposure, 2) + ' 是“每日 market_value / equity 的算术平均”。两者不同，不能混用。</div></div></div>';
-
-        bindV2(container);
-        drawV2Timeline(p);
-    }
-
-    function renderV2Why(container) {
-        const d = v2Data();
-        const g = state.v2.variant;
-        const p = state.v2.period;
-        if (!d) {
-            container.innerHTML = v2PageHeader('V2 为什么没有买入', '逐日真实漏斗与拒绝原因') + '<div class="alert alert-warning">暂无数据。</div>';
-            return;
-        }
-        const f = d.why_not_buy[g][p];
-        const reasons = Object.keys(f.reason_counts || {}).sort(function (a, b) { return f.reason_counts[b] - f.reason_counts[a]; });
-        const reasonRows = reasons.map(function (k) {
-            return '<tr><td class="mono">' + esc(k) + '</td><td>' + esc(V2_REASON_LABELS[k] || k) + '</td><td class="mono">' + fmt.money(f.reason_counts[k], 0) + '</td></tr>';
-        }).join('') || '<tr><td colspan="3">' + naCell('新阶段扩展账本未保存逐票 permission reasons，无法重建') + '</td></tr>';
-        const groupRows = ['market', 'sector', 'price'].map(function (k) {
-            const label = k === 'market' ? '市场' : (k === 'sector' ? '板块' : '价格');
-            const val = f.detail_available ? '<span class="mono">' + fmt.money(f.reason_groups[k] || 0, 0) + '</span>' : naInline('无逐票明细');
-            return '<tr><td>' + label + '</td><td>' + val + '</td><td class="sub">原因计数；同一符号日可重复触发，不可相加成拒绝数</td></tr>';
-        }).join('');
-        const overlapRows = Object.keys(f.reason_overlap_rows || {}).sort().map(function (n) {
-            return '<tr><td>' + esc(n) + ' 个原因</td><td class="mono">' + fmt.money(f.reason_overlap_rows[n], 0) + '</td></tr>';
-        }).join('');
-        const gaps = d.why_not_buy[g].gaps.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('');
-
-        const pageSize = 20;
-        const pages = Math.max(1, Math.ceil(f.daily.length / pageSize));
-        const page = Math.min(Math.max(1, state.v2.whyPage), pages);
-        const dailyRows = f.daily.slice().reverse().slice((page - 1) * pageSize, page * pageSize).map(function (x) {
-            return '<tr><td class="mono">' + esc(x.date) + '</td><td class="mono">' + x.evaluable + '</td><td class="mono">' + x.financial_passed + '</td><td class="mono">' + x.permission_passed + '</td><td class="mono">' + x.new_candidates + '</td><td class="mono">' + x.buy_intents + '</td><td class="mono">' + x.deferred_no_seat + '</td><td class="mono">' + x.not_ranked + '</td></tr>';
-        }).join('');
-
-        container.innerHTML = v2PageHeader('V2 为什么没有买入', '只使用每日真实漏斗；重叠原因不可相加，缺少记录明确标注不可重建') +
-            (p === 'new' ? '<div class="v2-callout warning"><strong>新阶段明细不完整：</strong>扩展账本只保存每日计数，没有逐票 permission reasons、逐票财务拒绝原因；缺失部分无法重建。页面只展示可核对的计数。</div>' : '') +
-            '<div class="v2-kpi-grid">' +
-            v2Kpi('财务拒绝（符号日）', fmt.money(f.financial_rejected_symbol_days, 0), '可评估 − 财务通过', '') +
-            v2Kpi('权限拒绝（符号日）', fmt.money(f.permission_rejected_symbol_days, 0), '财务通过 − 权限通过') +
-            v2Kpi('新候选实例', fmt.money(f.new_candidate_instances, 0), '通过观察/持有条件后') +
-            v2Kpi('买入意图', fmt.money(f.buy_intents, 0), '意图不等于成交') +
-            v2Kpi('席位延后', fmt.money(f.deferred_no_seat, 0), '满 5 席时等待') +
-            v2Kpi('排序层未排', fmt.money(f.not_ranked, 0), '财务底线/排序条件，不等于财务硬门槛') +
-            '</div>' +
-            '<div class="v2-callout info"><strong>不可相加：</strong>同一符号日可能同时有市场、板块、价格多个拒绝原因；原因计数总和大于被拒符号日数。全市场 1,932 只中只有 16 只进入财务研究样本，这是研究切片，不是策略拒绝。</div>' +
-            '<div class="v2-grid-2">' +
-            '<div class="card"><div class="card-header"><span class="card-title">漏斗（符号日 / 实例）</span></div><div class="card-body"><div class="chart-container" style="height:300px;"><canvas id="v2FunnelChart"></canvas></div></div></div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">每日通过 / 候选</span></div><div class="card-body"><div class="chart-container" style="height:300px;"><canvas id="v2FunnelDailyChart"></canvas></div></div></div>' +
-            '</div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">漏斗阶段与对账</span></div><div class="card-body"><div class="table-container"><table class="matrix-table"><thead><tr><th>阶段</th><th>值</th><th>说明</th></tr></thead><tbody>' +
-            '<tr><td>研究池（每日）</td><td class="mono">' + fmt.money(f.pool_size, 0) + '</td><td class="sub">全市场研究池</td></tr>' +
-            '<tr><td>财务样本（每日）</td><td class="mono">' + fmt.money(f.financial_sample_size, 0) + '</td><td class="sub">固定 16 只，不是拒绝</td></tr>' +
-            '<tr><td>可评估符号日</td><td class="mono">' + fmt.money(f.evaluable_symbol_days, 0) + '</td><td class="sub">财务样本 × 交易日</td></tr>' +
-            '<tr><td>财务通过</td><td class="mono">' + fmt.money(f.financial_passed_symbol_days, 0) + '</td><td class="sub">财务硬门槛通过</td></tr>' +
-            '<tr><td>权限通过</td><td class="mono">' + fmt.money(f.permission_passed_symbol_days, 0) + '</td><td class="sub">市场 + 板块 + 价格 + 财务</td></tr>' +
-            '<tr><td>新候选</td><td class="mono">' + fmt.money(f.new_candidate_instances, 0) + '</td><td class="sub">未持有/未冷却</td></tr>' +
-            '<tr><td>买入意图</td><td class="mono">' + fmt.money(f.buy_intents, 0) + '</td><td class="sub">意图，不等于成交</td></tr>' +
-            '<tr><td>席位延后</td><td class="mono">' + fmt.money(f.deferred_no_seat, 0) + '</td><td class="sub">满席等待</td></tr>' +
-            '<tr><td>排序层未排</td><td class="mono">' + fmt.money(f.not_ranked, 0) + '</td><td class="sub">财务底线/排序条件</td></tr>' +
-            '<tr><td>未成为新候选</td><td class="mono">' + fmt.money(f.non_candidate_after_permission, 0) + '</td><td class="sub">权限通过但未形成新候选；原因未逐条保存</td></tr>' +
-            '</tbody></table></div>' +
-            '<div class="v2-note">候选对账（当前方案）：' + fmt.money(f.new_candidate_instances, 0) + ' = 意图 ' + fmt.money(f.buy_intents, 0) + ' + 席位延后 ' + fmt.money(f.deferred_no_seat, 0) + ' + 排序层未排 ' + fmt.money(f.not_ranked, 0) + '。</div></div></div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">拒绝原因（开发阶段逐票 permission 审计）</span><span class="card-sub">' + (f.detail_available ? '可用' : '新阶段无逐票明细') + '</span></div><div class="card-body">' +
-            '<div class="table-container"><table class="matrix-table"><thead><tr><th>原因代码</th><th>中文</th><th>出现次数</th></tr></thead><tbody>' + reasonRows + '</tbody></table></div>' +
-            '<div class="v2-grid-2" style="margin-top:12px;"><div class="table-container"><table><thead><tr><th>原因组</th><th>次数</th><th>口径</th></tr></thead><tbody>' + groupRows + '</tbody></table></div>' +
-            '<div class="table-container"><table><thead><tr><th>每个被拒符号日的原因数</th><th>行数</th></tr></thead><tbody>' + (overlapRows || '<tr><td colspan="2">' + naCell('新阶段无逐票明细') + '</td></tr>') + '</tbody></table></div></div>' +
-            '<div class="v2-note">这些是 permission 检查的原因计数，且只覆盖开发阶段 460 日逐票审计；新阶段的 ' + fmt.money(d.why_not_buy[g].new.permission_rejected_symbol_days, 0) + ' 个权限拒绝没有逐票原因，未计入此表。“财务拒绝”也不在这里逐项展开，因为账本只保存财务通过/不通过，未保存每只股票的失败 metric。</div></div></div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">缺失记录与不可重建项</span></div><div class="card-body"><ul class="v2-limits">' + gaps + '</ul></div></div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">每日漏斗</span></div><div class="card-body"><div class="table-container"><table class="matrix-table"><thead><tr><th>日期</th><th>可评估</th><th>财务通过</th><th>权限通过</th><th>新候选</th><th>意图</th><th>席位延后</th><th>未排</th></tr></thead><tbody>' + dailyRows + '</tbody></table></div>' +
-            v2Pager(f.daily.length, page, pageSize, 'data-v2-why-page') + '</div></div>';
-
-        bindV2(container);
-        drawV2Funnel(p);
-    }
-
-    function renderV2Trades(container) {
-        const d = v2Data();
-        const g = state.v2.variant;
-        const p = state.v2.period;
-        if (!d) {
-            container.innerHTML = v2PageHeader('V2 交易与贡献', '卖出净盈亏与阶段贡献') + '<div class="alert alert-warning">暂无数据。</div>';
-            return;
-        }
-        const t = d.trades[g];
-        const st = v2Exp(g).periods[p];
-        const def = v2PeriodDef(p);
-        const symbols = Array.from(new Set(t.sells.map(function (s) { return s.symbol; }))).sort();
-        let sells = t.sells.filter(function (s) {
-            return s.fill_date >= def.start && s.fill_date <= def.end;
-        });
-        if (state.v2.tradeSymbol) {
-            sells = sells.filter(function (s) { return s.symbol === state.v2.tradeSymbol; });
-        }
-        const sort = state.v2.tradeSort;
-        sells = sells.slice().sort(function (a, b) {
-            let av = a[sort.column];
-            let bv = b[sort.column];
-            if (av === null || av === undefined) av = '';
-            if (bv === null || bv === undefined) bv = '';
-            if (typeof av === 'number' && typeof bv === 'number') return sort.direction === 'asc' ? av - bv : bv - av;
-            return sort.direction === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
-        });
-        const pageSize = 20;
-        const pages = Math.max(1, Math.ceil(sells.length / pageSize));
-        const page = Math.min(Math.max(1, state.v2.tradePage), pages);
-        const pageSells = sells.slice((page - 1) * pageSize, page * pageSize);
-
-        const newStage = t.new_stage;
-        const contribRows = newStage.contributions.map(function (x) {
-            const fullCycle = t.sells.filter(function (s) {
-                return s.symbol === x.symbol && s.period === 'new';
-            }).reduce(function (acc, s) { return acc + s.net_pnl; }, 0);
-            return '<tr><td class="mono">' + esc(x.symbol) + '</td>' +
-                '<td class="mono">' + fmt.money(x.boundary_market_value, 2) + '</td>' +
-                '<td class="mono">' + fmt.money(x.end_market_value, 2) + '</td>' +
-                '<td class="mono">' + fmt.money(x.buy_cash_out, 2) + '</td>' +
-                '<td class="mono">' + fmt.money(x.sell_net_proceeds, 2) + '</td>' +
-                '<td class="mono">' + fmt.money(x.dividends, 2) + '</td>' +
-                '<td class="mono">' + v2SignedMoney(x.contribution, 2) + '</td>' +
-                '<td class="mono">' + (fmt.isNum(x.share_of_new_stage_net_pnl) ? fmt.pct(x.share_of_new_stage_net_pnl, 2) : '暂无数据') + '</td>' +
-                '<td class="sub">' + (x.uses_boundary_market_value ? '从边界市值起算' : '新买入；无边界持仓') + '</td></tr>';
-        }).join('');
-        const sellRows = pageSells.map(function (s) {
-            return '<tr><td class="mono">' + esc(s.symbol) + '</td><td class="mono">' + esc(s.entry_date) + '</td>' +
-                '<td class="mono">' + esc(s.fill_date) + '</td><td class="mono">' + esc(s.signal_date || '—') + '</td>' +
-                '<td class="mono">' + (fmt.isNum(s.holding_trading_days) ? s.holding_trading_days : naInline('缺少交易日历索引')) + '</td>' +
-                '<td class="mono">' + fmt.money(s.quantity, 0) + '</td>' +
-                '<td class="mono">' + v2SignedMoney(s.net_pnl, 2) + '</td>' +
-                '<td class="mono">' + v2SignedPct(s.net_return, 4, '分母缺失或为0') + '</td>' +
-                '<td class="mono">' + v2SignedMoney(s.cumulative_realized_pnl, 2) + '</td>' +
-                '<td class="sub text-wrap">' + esc(s.reason || '') + '<div class="sub">cycle ' + esc(s.cycle_id === null || s.cycle_id === undefined ? '—' : s.cycle_id) + ' · 费用 ' + fmt.money(s.fees, 2) + '</div></td></tr>';
-        }).join('') || '<tr><td colspan="10">' + naCell('该区间/筛选无卖出成交') + '</td></tr>';
-        const divRows = t.dividends_by_symbol.map(function (x) {
-            return '<tr><td class="mono">' + esc(x.symbol) + '</td><td class="mono">' + fmt.money(x.dividends, 2) + '</td><td class="mono">' + x.pay_events + '</td></tr>';
-        }).join('') || '<tr><td colspan="3">' + naCell('全窗口无现金分红入账') + '</td></tr>';
-        const weight = st.max_single_weight_of_total_equity_detail || {};
-        const boundaryContrib = newStage.contributions.filter(function (x) { return x.uses_boundary_market_value; })[0];
-        const boundarySell = boundaryContrib ? t.sells.filter(function (s) { return s.symbol === boundaryContrib.symbol && s.period === 'new'; })[0] : null;
-        const boundaryNote = g === 'A' && boundaryContrib ? '<div class="v2-callout warning"><strong>边界持仓：</strong>' + esc(boundaryContrib.symbol) + ' 在 2026-07-29 已持有 28,900 股，边界市值 ' + fmt.money(boundaryContrib.boundary_market_value, 2) + '。新阶段贡献 ' + fmt.money(boundaryContrib.contribution, 2) + ' 从边界市值起算（阶段收益率 ' + fmt.pct(boundaryContrib.stage_return_on_boundary_value, 4) + ' = ' + fmt.money(boundaryContrib.contribution, 2) + ' / ' + fmt.money(boundaryContrib.boundary_market_value, 2) + '）；该次卖出相对全周期成本的净盈亏是 ' + fmt.money(boundarySell ? boundarySell.net_pnl : null, 2) + '，全周期净收益率 ' + fmt.pct(boundarySell ? boundarySell.net_return : null, 4) + '。不能拿全持仓周期收益充当阶段收益。</div>' : '<div class="v2-callout info"><strong>对照 C：</strong>2026-07-29 边界为空仓；新阶段 605138.SH 为 2026-08-28 新买入，阶段贡献 ' + fmt.money(newStage.net_pnl, 2) + ' 与全周期卖出净盈亏相同。</div>';
-
-        container.innerHTML = v2PageHeader('V2 交易与贡献', '成交统计、买入/卖出日期、持仓周期、净盈亏与阶段贡献') +
-            v2StatsBlock(g, p) +
-            '<div class="v2-kpi-grid">' +
-            v2Kpi('卖出成交（当前区间）', fmt.money(sells.length, 0), 'A 全窗口 20 / 新阶段 2') +
-            v2Kpi('卖出净盈亏（当前区间）', v2SignedMoney(sells.reduce(function (a, s) { return a + s.net_pnl; }, 0), 2), '已扣卖出费用') +
-            v2Kpi('新阶段净盈亏', v2SignedMoney(newStage.net_pnl, 2), '边界权益 → 期末权益') +
-            v2Kpi('新阶段贡献合计', v2SignedMoney(newStage.contribution_sum, 2), '残差 ' + fmt.money(newStage.residual, 2)) +
-            v2Kpi('最大单票贡献占比', v2Pct(newStage.top_contribution_share, 2), '分母是新阶段净 PnL，不是权重') +
-            v2Kpi('分红（全窗口，税前）', fmt.money(t.dividends_total, 2), '不并入卖出净盈亏') +
-            '</div>' +
-            boundaryNote +
-            v2HoldingCyclesTable(g, p) +
-            '<div class="v2-grid-2">' +
-            '<div class="card"><div class="card-header"><span class="card-title">新阶段分股票贡献与对账</span><span class="card-sub">边界市值 + 新现金流 + 分红</span></div><div class="card-body">' +
-            '<div class="table-container"><table class="matrix-table"><thead><tr><th>股票</th><th>边界市值</th><th>期末市值</th><th>新买入现金流出</th><th>卖出净回款</th><th>分红</th><th>阶段贡献</th><th>占净 PnL</th><th>口径</th></tr></thead><tbody>' + contribRows + '</tbody></table></div>' +
-            '<div class="v2-note">对账：分票贡献合计 ' + fmt.money(newStage.contribution_sum, 2) + ' = 阶段净盈亏 ' + fmt.money(newStage.net_pnl, 2) + '，残差 ' + fmt.money(newStage.residual, 2) + '。贡献 = 期末市值 − 边界市值 + 卖出净回款 − 新买入现金流出 + 分红。</div></div></div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">贡献柱状图</span></div><div class="card-body"><div class="chart-container" style="height:300px;"><canvas id="v2ContributionChart"></canvas></div></div></div>' +
-            '</div>' +
-            '<div class="v2-callout warning"><strong>118.24% 的分母：</strong>605138.SH 新阶段贡献 ' + fmt.money(newStage.top_contribution, 2) + ' / 新阶段净 PnL ' + fmt.money(newStage.net_pnl, 2) + ' = ' + fmt.pct(newStage.top_contribution_share, 2) + '。这是净盈亏分母下的归因，不代表持仓权重。剔除该票后 ' + v2Pct(newStage.return_excluding_top, 4) + ' 是算术剔除，不是重新回测。</div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">最大单票权重的两个分母</span><span class="card-sub">P20E 的 100% 是股票资产内部占比</span></div><div class="card-body"><div class="v2-grid-2">' +
-            '<div class="v2-mini-stat"><div class="v2-kpi-label">股票资产内部最大单票占比</div><div class="v2-kpi-value">' + v2Pct(st.max_single_weight_within_stock_assets, 2) + '</div><div class="v2-kpi-sub">分母 = 当日股票市值合计；只有一只股票时必然 100%</div></div>' +
-            '<div class="v2-mini-stat"><div class="v2-kpi-label">占组合总权益最大单票占比</div><div class="v2-kpi-value">' + v2Pct(st.max_single_weight_of_total_equity, 2) + '</div><div class="v2-kpi-sub">分母 = 总权益；' + esc(weight.date || '—') + ' ' + esc(weight.symbol || '') + '，市值 ' + fmt.money(weight.market_value, 2) + ' / 权益 ' + fmt.money(weight.equity, 2) + '</div></div>' +
-            '</div><div class="v2-note">两个比例不能混用；页面上任何“最大单票权重”都必须带分母说明。</div></div></div>' +
-            v2TradeNotesCards() +
-            v2ScoringAuditCard() +
-            '<div class="card"><div class="card-header"><span class="card-title">卖出明细</span><span class="card-sub">排序、筛选；累计已实现自 2024-09-02 起</span></div><div class="card-body">' +
-            '<div class="filter-bar"><div class="filter-group"><label>股票</label><select id="v2SymbolFilter"><option value="">全部</option>' +
-            symbols.map(function (s) { return '<option value="' + esc(s) + '"' + (state.v2.tradeSymbol === s ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></div>' +
-            '<div class="filter-group"><label>区间</label><span class="v2-inline-value">' + esc(def.label) + ' · ' + esc(def.start) + ' ~ ' + esc(def.end) + '</span><span class="sub">按卖出成交日（fill_date）筛选</span></div></div>' +
-            '<div class="table-container"><table class="matrix-table" id="v2SellTable"><thead><tr>' +
-            v2SortHeader('股票', 'symbol') + '<th>买入成交日</th>' + v2SortHeader('卖出成交日', 'fill_date') + '<th>卖出信号日</th>' + v2SortHeader('持有交易日', 'holding_trading_days') + '<th>数量</th>' + v2SortHeader('净盈亏', 'net_pnl') + v2SortHeader('净收益率', 'net_return') + '<th>累计已实现</th><th>原因 / 周期</th></tr></thead><tbody>' + sellRows + '</tbody></table></div>' +
-            v2Pager(sells.length, page, pageSize, 'data-v2-trade-page') +
-            '<div class="v2-note">买入成交日与卖出成交日分列；卖出信号日单独列，不与成交日混用。净收益率 = 卖出净盈亏 / 买入总成本；持有交易日按交易日历索引差；累计已实现为组合自 2024-09-02 起的累计值，不是单日收益。筛选后记录数 ' + sells.length + ' 条，与区间成交总数分列显示。</div></div></div>' +
-            '<div class="v2-grid-2">' +
-            '<div class="card"><div class="card-header"><span class="card-title">区间内累计已实现净盈亏</span></div><div class="card-body"><div class="chart-container" style="height:300px;"><canvas id="v2CumulativeChart"></canvas></div></div></div>' +
-            '<div class="card"><div class="card-header"><span class="card-title">分红（全窗口，税前）</span><span class="card-sub">分红现金不并入卖出净盈亏</span></div><div class="card-body"><div class="table-container"><table><thead><tr><th>股票</th><th>分红现金</th><th>支付事件</th></tr></thead><tbody>' + divRows + '</tbody></table></div><div class="v2-note">分红为税前；post_tax_return_verified=false。</div></div></div>' +
-            '</div>';
-
-        bindV2(container);
-        drawV2Cumulative(p);
-        drawV2Contribution(g);
-    }
-
-
     const renderers = {
         overview: renderOverview,
         nav: renderNav,
         comparison: renderComparison,
         segments: renderSegments,
         trades: renderTrades,
-        v2_overview: renderV2Overview,
-        v2_timeline: renderV2Timeline,
-        v2_why: renderV2Why,
-        v2_trades: renderV2Trades,
         riskfix: renderRiskFix,
         concentration: renderConcentration,
         cost: renderCostAttribution,
@@ -3218,16 +2220,6 @@
         await loadData();
         state.contract = buildContract();
         setupExperimentSelect();
-        try {
-            const savedVariant = localStorage.getItem('goldone_v2_variant');
-            if (savedVariant === 'A' || savedVariant === 'C') state.v2.variant = savedVariant;
-            const savedPeriod = localStorage.getItem('goldone_v2_period');
-            if (savedPeriod === 'dev' || savedPeriod === 'new' || savedPeriod === 'full') state.v2.period = savedPeriod;
-        } catch (e) { /* noop */ }
-        const v2Badge = document.getElementById('v2Badge');
-        if (v2Badge && state.data.v2_review) {
-            v2Badge.textContent = 'V2 · P12-A_fixed / C 对照';
-        }
         navigate('overview');
         window.GOLDONE = {
             getContract: function () { return contract(); },
@@ -3239,20 +2231,6 @@
                 if (els.experimentSelect) els.experimentSelect.value = id;
                 try { localStorage.setItem(EXPERIMENT_STORAGE_KEY, id); } catch (e) { /* noop */ }
                 state.filters.trades.experiment = id;
-                renderPage(state.currentPage);
-                return true;
-            },
-            getV2: function () { return v2Data(); },
-            getV2State: function () { return state.v2; },
-            setV2Variant: function (g) {
-                if (g !== 'A' && g !== 'C') return false;
-                state.v2.variant = g;
-                renderPage(state.currentPage);
-                return true;
-            },
-            setV2Period: function (p) {
-                if (['dev', 'new', 'full'].indexOf(p) < 0) return false;
-                state.v2.period = p;
                 renderPage(state.currentPage);
                 return true;
             }
