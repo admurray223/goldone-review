@@ -838,6 +838,8 @@
     function renderOverview(container) {
         const c = contract();
         const exp = currentExperiment();
+        const isP22 = exp.id.indexOf('p22_') === 0;
+        const bench = isP22 ? c.benchmark_p22_window : c.benchmark_new_window;
         const man = state.data.manifest || {};
         const st = state.data.d2c_status || {};
         const dq = state.data.data_quality || {};
@@ -852,11 +854,11 @@
             '统一数据契约（schema ' + c.schema_version + '）· 四组实验 Original/Fixed × C/R') +
             experimentBanner(exp) +
             '<div class="metric-grid">' +
-            metricCard('期末权益（2026-07-29）', moneyCell(metric(exp.final_equity, '缺少期末权益字段', { dp: 6 })), 'mono') +
+            metricCard('期末权益（' + (isP22 ? '2026-11-19' : '2026-07-29') + '）', moneyCell(metric(exp.final_equity, '缺少期末权益字段', { dp: 6 })), 'mono') +
             metricCard('总收益', pctCell(metric(exp.total_return, '缺少总收益字段', { dp: 2 }))) +
             metricCard('2026-03-18 权益', moneyCell(metric(exp.equity_2026_03_18, '缺少 2026-03-18 权益', { dp: 6 }))) +
-            metricCard('新90日收益（本组 0318 权益为分母）', pctCell(metric(exp.new_90d_return, '缺少 2026-03-18 或 2026-07-29 权益', { dp: 4 }))) +
-            metricCard('新90日基准', pctCell(metric(c.benchmark_new_window.value, c.benchmark_new_window.reason, { dp: 6 }))) +
+            metricCard('新90日收益（本组 ' + (isP22 ? '2026-07-29' : '0318') + ' 权益为分母）', pctCell(metric(exp.new_90d_return, isP22 ? '缺少 2026-07-29 权益' : '缺少 2026-03-18 或 2026-07-29 权益', { dp: 4 }))) +
+            metricCard(isP22 ? 'P22新增窗口基准' : '新90日基准', pctCell(metric(bench.value, bench.reason, { dp: 6 }))) +
             metricCard('新90日超额', pctCell(metric(exp.new_90d_excess, '缺少新90日收益或基准', { dp: 4 }))) +
             metricCard('最大回撤', pctCell(metric(exp.max_drawdown, '缺少该实验净值曲线', { dp: 2 }))) +
             metricCard('交易笔数', countCell(metric(exp.trade_count, '缺少交易明细'))) +
@@ -887,7 +889,7 @@
             statusCard('blocked', '财务覆盖', flags.financial_coverage ? '不足' : '充足', '评分为 6 只样本，按正式规则降级') +
             statusCard('pending', '风险修复状态', exp.implementation === 'fixed' ? '映射已修复' : '含确认缺陷', exp.risk_fix_metadata ? exp.risk_fix_metadata.defect_fixed : '见风险修复实验页') +
             '</div></div></div>' +
-            '<div class="alert alert-warning" style="margin-top:16px;"><strong>重要提示：</strong> 当前结果用于策略实验和行为验证，不构成投资建议，不授权模拟盘或实盘。收益基于 <code>adjusted_virtual</code> 价格空间，数量采用 100 股整手近似。</div>' +
+            '<div class="alert alert-warning" style="margin-top:16px;"><strong>重要提示：</strong> 当前结果用于策略实验和行为验证，不构成投资建议，不授权模拟盘或实盘。收益基于 <code>' + (isP22 ? 'raw' : 'adjusted_virtual') + '</code> 价格空间，数量采用 100 股整手近似。</div>' +
             '<div class="alert alert-info" style="margin-top:12px;"><strong>数据说明：</strong> 缺失字段一律显示“暂无数据”并注明原因，不填 0；真实 0 会正常显示为 0。当前数据截止 ' +
             esc(man.data_as_of || dq.data_date_range || '暂无数据') + '。</div>';
     }
@@ -935,7 +937,7 @@
             '<button class="btn btn-secondary btn-sm" id="resetZoomBtn">重置缩放</button>' +
             '</div>' +
             '<div class="metric-grid compact">' +
-            metricCard('当前实验期末权益（' + fullEnd + '）', moneyCell(metric(exp.equity_2026_07_29, '暂无数据', { dp: 6 }))) +
+            metricCard('当前实验期末权益（' + fullEnd + '）', moneyCell(metric(isP22 ? exp.final_equity : exp.equity_2026_07_29, '暂无数据', { dp: 6 }))) +
             metricCard('当前实验总收益', pctCell(metric(exp.total_return, '暂无数据', { dp: 2 }))) +
             metricCard('当前实验最大回撤', pctCell(metric(exp.max_drawdown, '暂无数据', { dp: 2 }))) +
             metricCard('当前实验' + newLabel + '收益', pctCell(metric(exp.new_90d_return, '暂无数据', { dp: 4 }))) +
