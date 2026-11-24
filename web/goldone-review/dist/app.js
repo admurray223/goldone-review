@@ -1321,8 +1321,16 @@
         const pnlLookup = buildPnLLookup();
         const out = [];
         const targetExp = experimentId ? c.by_id[experimentId] : null;
-        if (!targetExp) return out;
-        (raw[targetExp.group] || []).forEach(function (t) {
+        if (!targetExp) {
+            // Return special marker for mapping missing
+            return { __error: 'mapping_missing', experimentId: experimentId };
+        }
+        const groupData = raw[targetExp.group];
+        if (!groupData || !Array.isArray(groupData)) {
+            // Return special marker for data missing
+            return { __error: 'data_missing', group: targetExp.group, experimentId: experimentId };
+        }
+        groupData.forEach(function (t) {
             if ((t.variant || 'original') !== targetExp.implementation) return;
             const isSell = t.side === 'sell';
             const fillDate = t.fill_date || t.trade_date || '';
@@ -1353,11 +1361,20 @@
         // Lock the experiment ID for this trades view
         state.tradesLockedExperimentId = exp.id;
         // Load trades ONLY for the current experiment
-        tradesRows = flattenTrades(exp.id).sort(function (a, b) {
-            const da = a.fill_date || a.trade_date || '';
-            const db = b.fill_date || b.trade_date || '';
-            return db.localeCompare(da);
-        });
+        const loaded = flattenTrades(exp.id);
+        
+        // Check for error states from flattenTrades
+        if (loaded && loaded.__error) {
+            state.tradesError = loaded;
+            tradesRows = [];
+        } else {
+            state.tradesError = null;
+            tradesRows = loaded.sort(function (a, b) {
+                const da = a.fill_date || a.trade_date || '';
+                const db = b.fill_date || b.trade_date || '';
+                return db.localeCompare(da);
+            });
+        }
         
         // Build experiment options for the "All experiments" view (user must explicitly select)
         const allOptions = c.experiments.map(function (e) {
@@ -1432,6 +1449,10 @@
     }
 
     function computeTradeStats(rows, dateFrom, dateTo) {
+        // Handle error object from flattenTrades
+        if (rows && rows.__error) {
+            return { total: 0, inRange: 0, buys: 0, sells: 0, filtered: 0 };
+        }
         let inRange = rows.filter(function(t) {
             const d = t.fill_date || t.trade_date || '';
             return d >= dateFrom && d <= dateTo;
@@ -1547,7 +1568,52 @@
     function renderTradesTable() {
         // Get locked experiment ID from state (set by renderTrades)
         const lockedExperimentId = state.tradesLockedExperimentId || state.experimentId;
+        
+        // Case 3: Data loading failed, mapping missing, or structure error
+        if (state.tradesError) {
+            const err = state.tradesError;
+            let msg = '交易数据加载失败';
+            if (err.__error === 'mapping_missing') {
+                msg += '：实验映射不存在 (ID: ' + esc(err.experimentId) + ')';
+            } else if (err.__error === 'data_missing') {
+                msg += '：交易文件缺少该实验数据 (组: ' + esc(err.group) + ', ID: ' + esc(err.experimentId) + ')';
+            }
+            const tbody = document.getElementById('tradesTbody');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="16" class="sub text-danger">' + msg + '</td></tr>';
+            const info = document.getElementById('tradesInfo');
+            if (info) info.textContent = msg;
+            const statsEl = document.getElementById('tradeStats');
+            if (statsEl) statsEl.textContent = msg;
+            const pageInfo = document.getElementById('tradesPageInfo');
+            if (pageInfo) pageInfo.textContent = '第 0 / 0 页';
+            const prev = document.getElementById('tradesPrev');
+            const next = document.getElementById('tradesNext');
+            if (prev) prev.disabled = true;
+            if (next) next.disabled = true;
+            return;
+        }
+        
         const filtered = getFilteredTrades(lockedExperimentId);
+        
+        // Case 1: Data loaded successfully, but date range has no trades
+        const inRange = tradesRows.filter(function(t) {
+            const d = t.fill_date || t.trade_date || '';
+            return d >= state.filters.trades.dateFrom && d <= state.filters.trades.dateTo;
+        });
+        
+        // Case 2: Date range has trades, but additional filters excluded all
+        const hasAdditionalFilters = state.filters.trades.side || 
+                                     state.filters.trades.reason || 
+                                     state.filters.trades.pnl || 
+                                     state.filters.trades.symbol;
+        
+        let emptyMessage = '';
+        if (inRange.length === 0) {
+            emptyMessage = '该区间无成交';
+        } else if (filtered.length === 0 && hasAdditionalFilters) {
+            emptyMessage = '没有符合筛选条件的成交';
+        }
+        
         // Apply sorting
         const sortCol = state.sort.trades.column;
         const sortDir = state.sort.trades.direction;
@@ -1613,7 +1679,7 @@
                 '</tr>';
         }).join('');
         const tbody = document.getElementById('tradesTbody');
-        if (tbody) tbody.innerHTML = rows || '<tr><td colspan="16" class="sub">当前筛选无交易记录</td></tr>';
+        if (tbody) tbody.innerHTML = rows || '<tr><td colspan="16" class="sub">' + esc(emptyMessage || '当前筛选无交易记录') + '</td></tr>';
         
         // Update stats display
         const stats = computeTradeStats(tradesRows, state.filters.trades.dateFrom, state.filters.trades.dateTo);
